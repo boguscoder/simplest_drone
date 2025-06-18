@@ -1,2 +1,1 @@
-# icm20948_dump
-Dump icm20948 sensor data (when connected to Pi Pico)
+WIP for very basic rust firmware for quadcopter based on Pico Pi (ver 1)

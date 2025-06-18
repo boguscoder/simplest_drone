@@ -1,75 +1,46 @@
 #![no_std]
 #![no_main]
 
+mod attitude;
+mod imu;
+mod log;
+mod motor;
+mod pid;
+mod rc;
+mod setup;
 mod usb;
 
+use dshot_pio::DshotPioTrait;
 use embassy_executor::Spawner;
-use embassy_rp::bind_interrupts;
-use embassy_rp::i2c::{self, Config, InterruptHandler as I2CInterruptHandler};
-use embassy_rp::peripherals::I2C1;
-use embassy_time::{Delay, Duration, Ticker};
-use icm20948_async::*;
+use embassy_time::{Duration, Ticker};
 use panic_probe as _;
 
-bind_interrupts!(struct Irqs {
-    I2C1_IRQ => I2CInterruptHandler<I2C1>;
-});
+const TICK_HZ: u64 = 1000;
+
+#[cfg(feature = "logging")]
+const LOG_DIVISIOR: u64 = 3;
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
-    let p = embassy_rp::init(Default::default());
-    spawner.must_spawn(usb::usb_setup(p.USB));
+    let mut dshot = setup::connect(spawner).await;
 
-    // IMU via i2c
-    let sda = p.PIN_2;
-    let scl = p.PIN_3;
+    let mut loop_ticker = Ticker::every(Duration::from_hz(TICK_HZ));
+    let mut motor = motor::MotorInput::new(1.0 / TICK_HZ as f32);
+    let mut rc_reader = rc::RC_DATA.receiver().unwrap();
+    let mut imu_reader = imu::IMU_DATA.receiver().unwrap();
 
-    log::info!("set up i2c ");
-    let i2c = i2c::I2c::new_async(p.I2C1, scl, sda, Irqs, Config::default());
-
-    let imu_result = Icm20948::new_i2c_from_cfg(
-        i2c,
-        icm20948_async::Icm20948Config {
-            acc_range: AccRange::Gs8,
-            gyr_range: GyrRange::Dps2000,
-            acc_unit: AccUnit::Mpss,
-            gyr_unit: GyrUnit::Rps,
-            acc_dlp: AccDlp::Hz111,
-            gyr_dlp: GyrDlp::Hz361,
-            acc_odr: 0,
-            gyr_odr: 0,
-        },
-        Delay,
-    )
-    .set_address(0x69)
-    .initialize_9dof()
-    .await;
-
-    let Ok(mut imu) = imu_result else {
-        panic!("Failed to initialize IMU")
-    };
-
-    let mut imu_ticker = Ticker::every(Duration::from_hz(1000));
-
-    log::info!("Format Acc(vec3) Gyr(vec3) Mag(vec3)");
+    // PID loop //
     loop {
-        let Ok(measurement) = imu.read_9dof().await else {
-            continue;
-        };
+        if let Some(imudata) = imu_reader.try_get() {
+            if let Some(rc_data) = rc_reader.try_get() {
+                let throttle = motor.update(&rc_data, &imudata);
+                dshot.throttle_clamp(throttle);
+            } else {
+                dshot.throttle_minimum();
+            }
+        }
 
-        log::info!(
-            "{}, {}, {}, {}, {}, {}, {}, {}, {}",
-            measurement.acc.x,
-            measurement.acc.y,
-            measurement.acc.z,
-            measurement.gyr.x,
-            measurement.gyr.y,
-            measurement.gyr.z,
-            measurement.mag.x,
-            measurement.mag.y,
-            measurement.mag.z
-        );
         // Delay until next loop
-        imu_ticker.next().await;
+        loop_ticker.next().await;
     }
 }
