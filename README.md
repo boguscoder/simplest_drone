@@ -1,0 +1,1 @@
+WIP for very basic rust firmware for quadcopter based on Pico Pi (ver 1)
