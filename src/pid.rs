@@ -31,16 +31,14 @@ impl Pid {
         limit_pid: Option<Limits>,
         d_filter_cutoff_hz: Option<f32>,
     ) -> Pid {
-        let d_lowpass_filter: Option<LowPassFilterState> = match d_filter_cutoff_hz {
-            Some(freq) => Some(LowPassFilterState {
+        let d_lowpass_filter: Option<LowPassFilterState> =
+            d_filter_cutoff_hz.map(|freq| LowPassFilterState {
                 alpha: {
                     let rc_constant = 1.0 / (2.0 * core::f32::consts::PI * freq);
                     cycle_time / (rc_constant + cycle_time)
                 },
                 prev_d: 0.0,
-            }),
-            None => None,
-        };
+            });
         Pid {
             kp,
             ki,
