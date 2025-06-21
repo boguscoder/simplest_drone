@@ -1,5 +1,6 @@
 #![cfg(feature = "logging")]
 
+use crate::telemetry;
 use embassy_rp::bind_interrupts;
 use embassy_rp::peripherals::USB;
 use embassy_rp::usb::{Driver, InterruptHandler};
@@ -16,6 +17,21 @@ impl ReceiverHandler for Handler {
         if let Ok(data) = str::from_utf8(data) {
             let data = data.trim();
             log::info!("Recieved: {:?}", data);
+            #[cfg(feature = "telemetry")]
+            {
+                // TODO: move to num_enum
+                let cat = match data {
+                    "Imu" => telemetry::Category::Imu,
+                    "Attitude" => telemetry::Category::Attitude,
+                    "Pid" => telemetry::Category::Pid,
+                    "Mix" => telemetry::Category::Mix,
+                    "Dshot" => telemetry::Category::Dshot,
+                    _ => telemetry::Category::None,
+                };
+                unsafe {
+                    telemetry::TELE_CATEGORY = cat;
+                }
+            }
         }
     }
 

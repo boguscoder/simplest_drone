@@ -74,8 +74,7 @@ pub async fn rc_task(mut uart: setup::UartReader) -> ! {
         match read_result {
             Ok(Ok(_)) => {
                 if let Some(packet) = sbusparser.receive(&read_buffer) {
-                    #[cfg(feature = "verbose")]
-                    crate::rl_log!(crate::LOG_DIVISOR, "rc {:?}", packet.channels);
+                    log::trace!("rc {:?}", packet.channels);
 
                     let rc_data = RcData::from_channels(packet.channels);
                     if rc_data.swd() >= RC_FAILSAFE {

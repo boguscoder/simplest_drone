@@ -21,11 +21,12 @@ macro_rules! rl_log {
         let limit = $count_limit as usize;
         let effective_limit = if limit == 0 { 1 } else { limit };
 
-        unsafe {
+        let pass_log = unsafe {
             __CALL_COUNTER += 1;
-            if __CALL_COUNTER % effective_limit == 0 {
-                log::info!($($arg)*);
-            }
+            __CALL_COUNTER % effective_limit == 0
+        };
+        if pass_log {
+            log::info!($($arg)*);
         }
     };
 }

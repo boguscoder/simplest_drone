@@ -1,4 +1,5 @@
 use crate::imu;
+use crate::telemetry;
 use ahrs::{Ahrs, Madgwick};
 use icm20948_async::Data6Dof;
 use nalgebra::Vector3;
@@ -24,9 +25,8 @@ impl Attitude {
         if let Ok(quat) = self.ahrs.update_imu(&gyr, &acc) {
             let att: [f32; 3] = quat.euler_angles().into();
 
-            #[cfg(feature = "log_att")]
-            crate::rl_log!(
-                crate::LOG_DIVISIOR,
+            crate::tele!(
+                telemetry::Category::Attitude,
                 "{},{},{}",
                 att[0].to_degrees(),
                 att[1].to_degrees(),
@@ -37,8 +37,7 @@ impl Attitude {
         } else {
             log::error!("ahrs error");
         }
-        #[cfg(feature = "verbose")]
-        log::info!("Not yet calibrated gyro and acc");
+        log::trace!("Not yet calibrated gyro and acc");
 
         None
     }
