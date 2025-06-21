@@ -5,12 +5,7 @@ edition = "2024"
 
 [features]
 logging = ["dep:embassy-usb", "dep:embassy-usb-logger"]
-verbose = ["logging"]
-log_imu = ["logging"]
-log_att = ["logging"]
-log_pid = ["logging"]
-log_dshot = ["logging"]
-log_mix = ["logging"]
+telemetry = ["logging"]
 
 [dependencies]
 ahrs = { version = "0.7.0", default-features = false }
@@ -30,7 +25,7 @@ embassy-sync = "0.7.0"
 
 icm20948-async = { git = "https://github.com/peterkrull/icm20948-async" }
 
-log = {version = "0.4.27"}
+log = "0.4.27"
 
 nalgebra = { version = "0.33.2", default-features = false, features = ["libm"] }
 

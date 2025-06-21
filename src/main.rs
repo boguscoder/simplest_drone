@@ -8,6 +8,7 @@ mod motor;
 mod pid;
 mod rc;
 mod setup;
+mod telemetry;
 mod usb;
 
 use dshot_pio::DshotPioTrait;

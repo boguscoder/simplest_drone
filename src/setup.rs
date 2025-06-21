@@ -23,7 +23,7 @@ bind_interrupts!(struct Irqs {
 });
 
 pub type ImuReader =
-    Icm20948<BusI2c<i2c::I2c<'static, peripherals::I2C0, i2c::Async>>, icm20948_async::MagDisabled>;
+    Icm20948<BusI2c<i2c::I2c<'static, peripherals::I2C0, i2c::Async>>, icm20948_async::MagEnabled>;
 pub type UartReader = UartRx<'static, peripherals::UART1, uart::Async>;
 
 pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
@@ -64,7 +64,7 @@ pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
         .acc_unit(AccUnit::Mpss)
         .acc_dlp(AccDlp::Hz246)
         .set_address(0x69)
-        .initialize_6dof()
+        .initialize_9dof()
         .await;
 
     let Ok(imu) = imu_result else {
