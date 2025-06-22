@@ -28,6 +28,7 @@ icm20948-async = { git = "https://github.com/peterkrull/icm20948-async" }
 log = "0.4.27"
 
 nalgebra = { version = "0.33.2", default-features = false, features = ["libm"] }
+num_enum = { version = "0.7.3", default-features = false }
 
 panic-probe = "1.0.0"
 portable-atomic = { version = "1.11.1", features = ["critical-section"] }

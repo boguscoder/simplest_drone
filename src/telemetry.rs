@@ -1,5 +1,9 @@
 #[cfg(feature = "telemetry")]
-#[derive(Copy, Clone, PartialEq)]
+use num_enum::TryFromPrimitive;
+
+#[cfg(feature = "telemetry")]
+#[derive(Copy, Clone, PartialEq, TryFromPrimitive)]
+#[repr(u8)]
 pub enum Category {
     None = 0,
     Imu,
