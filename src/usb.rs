@@ -42,14 +42,12 @@ async fn usb_read_task(mut class: AcmClass) {
     let mut buf = [0; 64];
     loop {
         class.wait_connection().await;
-        log::info!("USB CDC ACM App Class connected");
 
         loop {
             match class.read_packet(&mut buf).await {
                 Ok(count) => {
                     if count > 0 {
                         handle_data(&buf[..count]);
-                        class.write_packet(&buf[..count]).await.ok();
                     }
                 }
                 Err(e) => {
