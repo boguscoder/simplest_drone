@@ -19,17 +19,13 @@ type UsbDevice = embassy_usb::UsbDevice<'static, Driver<'static, USB>>;
 fn handle_data(data: &[u8]) {
     #[cfg(feature = "telemetry")]
     {
-        // TODO: move to num_enum or strum
-        let cat = match data[0] {
-            1 => telemetry::Category::Imu,
-            2 => telemetry::Category::Attitude,
-            3 => telemetry::Category::Pid,
-            4 => telemetry::Category::Mix,
-            5 => telemetry::Category::Dshot,
-            _ => telemetry::Category::None,
-        };
-        unsafe {
-            telemetry::TELE_CATEGORY = cat;
+        match telemetry::Category::try_from(data[0]) {
+            Ok(cat) => unsafe {
+                telemetry::TELE_CATEGORY = cat;
+            },
+            Err(_) => unsafe {
+                telemetry::TELE_CATEGORY = telemetry::Category::None;
+            },
         }
     }
 }
