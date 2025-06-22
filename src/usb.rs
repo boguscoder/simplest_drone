@@ -16,22 +16,19 @@ pub type AcmClass = CdcAcmClass<'static, Driver<'static, USB>>;
 pub type UsbDevice = embassy_usb::UsbDevice<'static, Driver<'static, USB>>;
 
 fn handle_data(data: &[u8]) {
-    if let Ok(data) = str::from_utf8(data) {
-        let data = data.trim();
-        #[cfg(feature = "telemetry")]
-        {
-            // TODO: move to num_enum or strum
-            let cat = match data {
-                "1" => telemetry::Category::Imu,
-                "2" => telemetry::Category::Attitude,
-                "3" => telemetry::Category::Pid,
-                "4" => telemetry::Category::Mix,
-                "5" => telemetry::Category::Dshot,
-                _ => telemetry::Category::None,
-            };
-            unsafe {
-                telemetry::TELE_CATEGORY = cat;
-            }
+    #[cfg(feature = "telemetry")]
+    {
+        // TODO: move to num_enum or strum
+        let cat = match data[0] {
+            1 => telemetry::Category::Imu,
+            2 => telemetry::Category::Attitude,
+            3 => telemetry::Category::Pid,
+            4 => telemetry::Category::Mix,
+            5 => telemetry::Category::Dshot,
+            _ => telemetry::Category::None,
+        };
+        unsafe {
+            telemetry::TELE_CATEGORY = cat;
         }
     }
 }
