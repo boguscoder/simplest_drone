@@ -4,44 +4,109 @@ use crate::telemetry;
 use embassy_rp::bind_interrupts;
 use embassy_rp::peripherals::USB;
 use embassy_rp::usb::{Driver, InterruptHandler};
-use embassy_usb_logger::ReceiverHandler;
+use embassy_usb::class::cdc_acm::{CdcAcmClass, State};
+use embassy_usb::{Builder, Config};
+use static_cell::StaticCell;
 
 bind_interrupts!(struct Irqs {
     USBCTRL_IRQ => InterruptHandler<USB>;
 });
 
-struct Handler;
+pub type AcmClass = CdcAcmClass<'static, Driver<'static, USB>>;
+pub type UsbDevice = embassy_usb::UsbDevice<'static, Driver<'static, USB>>;
 
-impl ReceiverHandler for Handler {
-    async fn handle_data(&self, data: &[u8]) {
-        if let Ok(data) = str::from_utf8(data) {
-            let data = data.trim();
-            log::info!("Recieved: {:?}", data);
-            #[cfg(feature = "telemetry")]
-            {
-                // TODO: move to num_enum
-                let cat = match data {
-                    "Imu" => telemetry::Category::Imu,
-                    "Attitude" => telemetry::Category::Attitude,
-                    "Pid" => telemetry::Category::Pid,
-                    "Mix" => telemetry::Category::Mix,
-                    "Dshot" => telemetry::Category::Dshot,
-                    _ => telemetry::Category::None,
-                };
-                unsafe {
-                    telemetry::TELE_CATEGORY = cat;
-                }
+fn handle_data(data: &[u8]) {
+    if let Ok(data) = str::from_utf8(data) {
+        let data = data.trim();
+        #[cfg(feature = "telemetry")]
+        {
+            // TODO: move to num_enum or strum
+            let cat = match data {
+                "1" => telemetry::Category::Imu,
+                "2" => telemetry::Category::Attitude,
+                "3" => telemetry::Category::Pid,
+                "4" => telemetry::Category::Mix,
+                "5" => telemetry::Category::Dshot,
+                _ => telemetry::Category::None,
+            };
+            unsafe {
+                telemetry::TELE_CATEGORY = cat;
             }
         }
-    }
-
-    fn new() -> Self {
-        Self
     }
 }
 
 #[embassy_executor::task]
-pub async fn usb_setup(p: embassy_rp::peripherals::USB) {
+pub async fn usb_log_task(class: AcmClass) {
+    embassy_usb_logger::with_class!(1024, log::LevelFilter::Info, class).await
+}
+
+#[embassy_executor::task]
+pub async fn usb_read_task(mut class: AcmClass) -> ! {
+    let mut buf = [0; 64];
+    loop {
+        class.wait_connection().await;
+        log::info!("USB CDC ACM App Class connected");
+
+        loop {
+            match class.read_packet(&mut buf).await {
+                Ok(count) => {
+                    if count > 0 {
+                        handle_data(&buf[..count]);
+                        class.write_packet(&buf[..count]).await.ok();
+                    }
+                }
+                Err(e) => {
+                    log::error!("App Class RX Error: {:?}", e);
+                }
+            }
+        }
+    }
+}
+
+#[embassy_executor::task]
+pub async fn usb_run_task(mut dev: UsbDevice) -> ! {
+    dev.run().await;
+}
+
+pub fn usb_setup(p: embassy_rp::peripherals::USB) -> (UsbDevice, AcmClass, AcmClass) {
     let driver = Driver::new(p, Irqs);
-    embassy_usb_logger::run!(1024, log::LevelFilter::Info, driver, Handler);
+    let mut config = Config::new(0xc0de, 0xcafe);
+    config.manufacturer = Some("Embassy");
+    config.product = Some("USB-serial console");
+    config.serial_number = Some("0xC0DECAFE");
+    config.max_power = 100;
+    config.max_packet_size_0 = 64;
+
+    let mut builder = {
+        static CONFIG_DESCRIPTOR: StaticCell<[u8; 256]> = StaticCell::new();
+        static BOS_DESCRIPTOR: StaticCell<[u8; 256]> = StaticCell::new();
+        static CONTROL_BUF: StaticCell<[u8; 64]> = StaticCell::new();
+
+        let builder = Builder::new(
+            driver,
+            config,
+            CONFIG_DESCRIPTOR.init([0; 256]),
+            BOS_DESCRIPTOR.init([0; 256]),
+            &mut [], // no msos descriptors
+            CONTROL_BUF.init([0; 64]),
+        );
+        builder
+    };
+
+    let logger_class = {
+        static STATE: StaticCell<State> = StaticCell::new();
+        let state = STATE.init(State::new());
+        CdcAcmClass::new(&mut builder, state, 64)
+    };
+
+    let app_class = {
+        static STATE: StaticCell<State> = StaticCell::new();
+        let state = STATE.init(State::new());
+        CdcAcmClass::new(&mut builder, state, 64)
+    };
+
+    let usb = builder.build();
+
+    (usb, logger_class, app_class)
 }

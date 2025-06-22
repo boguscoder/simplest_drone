@@ -30,7 +30,12 @@ pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
     let p = embassy_rp::init(Default::default());
 
     #[cfg(feature = "logging")]
-    spawner.must_spawn(usb::usb_setup(p.USB));
+    {
+        let (usb_dev, log_class, app_class) = usb::usb_setup(p.USB);
+        spawner.must_spawn(usb::usb_run_task(usb_dev));
+        spawner.must_spawn(usb::usb_log_task(log_class));
+        spawner.must_spawn(usb::usb_read_task(app_class));
+    }
     // RC via SBUS setup //
     log::info!("// RC via SBUS setup //");
 
