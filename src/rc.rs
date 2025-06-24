@@ -50,17 +50,6 @@ impl RcData {
     }
 }
 
-impl core::fmt::Debug for RcData {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("RcData")
-            .field("throttle", &self.throttle())
-            .field("roll", &self.roll())
-            .field("pitch", &self.pitch())
-            .field("yaw", &self.yaw())
-            .finish()
-    }
-}
-
 #[embassy_executor::task]
 pub async fn rc_task(mut uart: setup::UartReader) -> ! {
     let rc_timeout = Duration::from_millis(100);
