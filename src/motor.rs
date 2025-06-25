@@ -1,7 +1,7 @@
 use crate::attitude::Attitude;
 use crate::pid::{self, Pid};
 use crate::rc::RcData;
-use crate::telemetry;
+use crate::telemetry::Category;
 use icm20948_async::Data6Dof;
 
 const MAX_POWER: f32 = 0.6;
@@ -28,10 +28,7 @@ fn inputs_to_throttle(
     pid_pitch: f32,
     pid_yaw: f32,
 ) -> [u16; 4] {
-    crate::tele!(
-        telemetry::Category::Pid,
-        "{throttle},{pid_roll},{pid_pitch},{pid_yaw}"
-    );
+    tele!(Category::Pid, "{throttle},{pid_roll},{pid_pitch},{pid_yaw}");
 
     let mixed_vals = [
         throttle - pid_pitch + pid_roll - pid_yaw,
@@ -40,8 +37,8 @@ fn inputs_to_throttle(
         throttle + pid_pitch + pid_roll + pid_yaw,
     ];
 
-    crate::tele!(
-        telemetry::Category::Mix,
+    tele!(
+        Category::Mix,
         "{},{},{},{}",
         mixed_vals[0],
         mixed_vals[1],
@@ -56,8 +53,8 @@ fn inputs_to_throttle(
         pid_to_throttle(mixed_vals[3] * MAX_POWER),
     ];
 
-    crate::tele!(
-        telemetry::Category::Dshot,
+    tele!(
+        Category::Dshot,
         "{},{},{},{}",
         throttle_vals[0],
         throttle_vals[1],

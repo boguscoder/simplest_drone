@@ -1,6 +1,6 @@
 #![cfg(feature = "logging")]
 
-use crate::telemetry;
+use crate::telemetry::{Category, TELE_CATEGORY};
 use embassy_futures::join::join;
 use embassy_rp::bind_interrupts;
 use embassy_rp::peripherals::USB;
@@ -19,12 +19,12 @@ type UsbDevice = embassy_usb::UsbDevice<'static, Driver<'static, USB>>;
 fn handle_data(data: &[u8]) {
     #[cfg(feature = "telemetry")]
     {
-        match telemetry::Category::try_from(data[0]) {
+        match Category::try_from(data[0]) {
             Ok(cat) => unsafe {
-                telemetry::TELE_CATEGORY = cat;
+                TELE_CATEGORY = cat;
             },
             Err(_) => unsafe {
-                telemetry::TELE_CATEGORY = telemetry::Category::None;
+                TELE_CATEGORY = Category::None;
             },
         }
     }
@@ -48,6 +48,7 @@ async fn usb_read_task(mut class: AcmClass) {
                 }
                 Err(e) => {
                     log::error!("App Class RX Error: {:?}", e);
+                    break;
                 }
             }
         }
@@ -73,15 +74,14 @@ pub async fn usb_setup(p: embassy_rp::peripherals::USB) {
         static BOS_DESCRIPTOR: StaticCell<[u8; 256]> = StaticCell::new();
         static CONTROL_BUF: StaticCell<[u8; 64]> = StaticCell::new();
 
-        let builder = Builder::new(
+        Builder::new(
             driver,
             config,
             CONFIG_DESCRIPTOR.init([0; 256]),
             BOS_DESCRIPTOR.init([0; 256]),
             &mut [], // no msos descriptors
             CONTROL_BUF.init([0; 64]),
-        );
-        builder
+        )
     };
 
     let logger_class = {

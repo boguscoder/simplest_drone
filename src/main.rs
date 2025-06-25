@@ -1,6 +1,9 @@
 #![no_std]
 #![no_main]
 
+#[macro_use]
+mod telemetry;
+
 mod attitude;
 mod imu;
 mod log;
@@ -8,7 +11,6 @@ mod motor;
 mod pid;
 mod rc;
 mod setup;
-mod telemetry;
 mod usb;
 
 use dshot_pio::DshotPioTrait;
