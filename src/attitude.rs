@@ -1,5 +1,5 @@
 use crate::imu;
-use crate::telemetry;
+use crate::telemetry::Category;
 use ahrs::{Ahrs, Madgwick};
 use icm20948_async::Data6Dof;
 use nalgebra::Vector3;
@@ -25,8 +25,8 @@ impl Attitude {
         if let Ok(quat) = self.ahrs.update_imu(&gyr, &acc) {
             let att: [f32; 3] = quat.euler_angles().into();
 
-            crate::tele!(
-                telemetry::Category::Attitude,
+            tele!(
+                Category::Attitude,
                 "{},{},{}",
                 att[0].to_degrees(),
                 att[1].to_degrees(),

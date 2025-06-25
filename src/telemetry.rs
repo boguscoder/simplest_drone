@@ -1,7 +1,5 @@
-#[cfg(feature = "telemetry")]
 use num_enum::TryFromPrimitive;
 
-#[cfg(feature = "telemetry")]
 #[derive(Copy, Clone, PartialEq, TryFromPrimitive)]
 #[repr(u8)]
 pub enum Category {
@@ -25,6 +23,10 @@ macro_rules! tele {
             if log_tele {
                 $crate::rl_log!($crate::LOG_DIVISIOR, $($arg)*);
             }
+        }
+        #[cfg(not(feature = "telemetry"))]
+        {
+            let _ = $cat;
         }
     }
 }

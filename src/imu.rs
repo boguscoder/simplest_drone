@@ -1,5 +1,5 @@
 use crate::setup;
-use crate::telemetry;
+use crate::telemetry::Category;
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::watch::Watch;
 use embassy_time::{Duration, Ticker};
@@ -25,7 +25,7 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
         };
 
         #[rustfmt::skip]
-        crate::tele!(telemetry::Category::Imu, "{},{},{},{},{},{},{},{},{}",
+        tele!(Category::Imu, "{},{},{},{},{},{},{},{},{}",
             imudata.gyr[0], imudata.gyr[1], imudata.gyr[2],
             imudata.acc[0], imudata.acc[1], imudata.acc[2],
             imudata.mag[0], imudata.mag[1], imudata.mag[2]);
