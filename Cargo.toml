@@ -6,6 +6,7 @@ edition = "2024"
 [features]
 logging = ["dep:embassy-usb", "dep:embassy-usb-logger"]
 telemetry = ["logging"]
+feather = []
 
 [dependencies]
 ahrs = { version = "0.7.0", default-features = false }

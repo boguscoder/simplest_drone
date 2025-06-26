@@ -5,6 +5,7 @@
 mod telemetry;
 
 mod attitude;
+mod device;
 mod imu;
 mod log;
 mod motor;
