@@ -16,7 +16,7 @@ use crate::usb;
 
 pub type ImuReader = Icm20948<
     BusI2c<i2c::I2c<'static, crate::device::I2cPeripheral, i2c::Async>>,
-    icm20948_async::MagEnabled,
+    icm20948_async::MagDisabled,
 >;
 pub type UartReader = UartRx<'static, crate::device::SbusUartPeripheral, uart::Async>;
 
@@ -64,7 +64,7 @@ pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
         .acc_unit(AccUnit::Mpss)
         .acc_dlp(AccDlp::Hz246)
         .set_address(0x69)
-        .initialize_9dof()
+        .initialize_6dof()
         .await;
 
     let Ok(imu) = imu_result else {

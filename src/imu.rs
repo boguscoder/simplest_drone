@@ -1,5 +1,4 @@
 use crate::setup;
-use crate::telemetry::Category;
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::watch::Watch;
 use embassy_time::{Duration, Ticker};
@@ -19,16 +18,10 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
     let mut gyr_bias: Vector3<f32> = Vector3::default();
 
     loop {
-        let Ok(imudata) = imu.read_9dof().await else {
+        let Ok(imudata) = imu.read_6dof().await else {
             log::error!("Failed to read IMU");
             continue;
         };
-
-        #[rustfmt::skip]
-        tele!(Category::Imu, "{},{},{},{},{},{},{},{},{}",
-            imudata.gyr[0], imudata.gyr[1], imudata.gyr[2],
-            imudata.acc[0], imudata.acc[1], imudata.acc[2],
-            imudata.mag[0], imudata.mag[1], imudata.mag[2]);
 
         if ticks == 0 {
             log::info!("Calibration...");
@@ -43,8 +36,7 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
         } else {
             imu_sender.send(Data6Dof::<f32> {
                 gyr: (Vector3::from(imudata.gyr) - gyr_bias).into(),
-                acc: imudata.acc,
-                tmp: imudata.tmp,
+                ..imudata
             })
         }
 

@@ -22,7 +22,7 @@ use panic_probe as _;
 const TICK_HZ: u64 = 1000;
 
 #[cfg(feature = "logging")]
-const LOG_DIVISIOR: u64 = 3;
+const LOG_DIVISIOR: u64 = 4;
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {

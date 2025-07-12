@@ -81,8 +81,12 @@ impl MotorInput {
         }
     }
 
-    pub fn update(&mut self, rc_data: &RcData, raw_imu: &Data6Dof<f32>) -> [u16; 4] {
-        if let Some(att) = self.att_transformer.update(raw_imu) {
+    pub fn update(&mut self, rc_data: &RcData, imudata: &Data6Dof<f32>) -> [u16; 4] {
+        #[rustfmt::skip]
+        tele!(Category::Imu, "{},{},{},{},{},{}",
+            imudata.gyr[0], imudata.gyr[1], imudata.gyr[2],
+            imudata.acc[0], imudata.acc[1], imudata.acc[2]);
+        if let Some(att) = self.att_transformer.update(imudata) {
             let pid_roll =
                 self.pid_roll.update(rc_data.roll() * ROLL_RATE, -att[0]) * ROLL_MIX_GAIN;
             let pid_pitch =
