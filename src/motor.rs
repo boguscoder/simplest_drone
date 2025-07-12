@@ -21,13 +21,7 @@ pub fn pid_to_throttle(rc: f32) -> u16 {
     (THROTTLE_MIN + SLOPE * rc) as u16
 }
 
-fn inputs_to_throttle(
-    _tick_num: u64,
-    throttle: f32,
-    pid_roll: f32,
-    pid_pitch: f32,
-    pid_yaw: f32,
-) -> [u16; 4] {
+fn inputs_to_throttle(throttle: f32, pid_roll: f32, pid_pitch: f32, pid_yaw: f32) -> [u16; 4] {
     tele!(Category::Pid, "{throttle},{pid_roll},{pid_pitch},{pid_yaw}");
 
     let mixed_vals = [
@@ -70,7 +64,6 @@ pub struct MotorInput {
     pid_pitch: Pid,
     pid_yaw: Pid,
     att_transformer: Attitude,
-    tick_num: u64,
 }
 
 impl MotorInput {
@@ -85,12 +78,10 @@ impl MotorInput {
             pid_pitch: Pid::new(0.8, 0.0, 0.05, cycle_time, pid_limits, d_filter_cutoff_hz),
             pid_yaw: Pid::new(0.8, 0.0, 0.05, cycle_time, pid_limits, d_filter_cutoff_hz),
             att_transformer: Attitude::new(),
-            tick_num: 0,
         }
     }
 
     pub fn update(&mut self, rc_data: &RcData, raw_imu: &Data6Dof<f32>) -> [u16; 4] {
-        self.tick_num += 1;
         if let Some(att) = self.att_transformer.update(raw_imu) {
             let pid_roll =
                 self.pid_roll.update(rc_data.roll() * ROLL_RATE, -att[0]) * ROLL_MIX_GAIN;
@@ -98,13 +89,7 @@ impl MotorInput {
                 self.pid_pitch.update(rc_data.pitch() * PITCH_RATE, att[1]) * PITCH_MIX_GAIN;
             let pid_yaw = self.pid_yaw.update(rc_data.yaw() * YAW_RATE, att[2]) * YAW_MIX_GAIN;
 
-            return inputs_to_throttle(
-                self.tick_num,
-                rc_data.throttle(),
-                pid_roll,
-                pid_pitch,
-                pid_yaw,
-            );
+            return inputs_to_throttle(rc_data.throttle(), pid_roll, pid_pitch, pid_yaw);
         }
         [0; 4]
     }

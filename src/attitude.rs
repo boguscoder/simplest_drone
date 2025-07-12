@@ -6,19 +6,16 @@ use nalgebra::Vector3;
 
 pub struct Attitude {
     ahrs: Madgwick<f32>,
-    tick_num: u64,
 }
 
 impl Attitude {
     pub fn new() -> Attitude {
         Attitude {
             ahrs: Madgwick::new(1.0 / imu::IMU_TICK as f32, 0.05),
-            tick_num: 0,
         }
     }
 
     pub fn update(&mut self, raw_imu: &Data6Dof<f32>) -> Option<[f32; 3]> {
-        self.tick_num += 1;
         let gyr = Vector3::from(raw_imu.gyr);
         let acc = Vector3::from(raw_imu.acc);
 
@@ -37,8 +34,6 @@ impl Attitude {
         } else {
             log::error!("ahrs error");
         }
-        log::trace!("Not yet calibrated gyro and acc");
-
         None
     }
 }
