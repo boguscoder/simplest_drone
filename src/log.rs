@@ -18,12 +18,9 @@ macro_rules! rl_log {
     ($count_limit:expr, $($arg:tt)*) => {
         static mut __CALL_COUNTER: usize = 0;
 
-        let limit = $count_limit as usize;
-        let effective_limit = if limit == 0 { 1 } else { limit };
-
         let pass_log = unsafe {
             __CALL_COUNTER += 1;
-            __CALL_COUNTER % effective_limit == 0
+            __CALL_COUNTER % ($count_limit as usize) == 0
         };
         if pass_log {
             log::info!($($arg)*);
