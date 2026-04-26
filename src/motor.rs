@@ -21,6 +21,10 @@ pub fn pid_to_throttle(rc: f32) -> u16 {
     (THROTTLE_MIN + SLOPE * rc) as u16
 }
 
+pub fn throttle_disarm() -> [u16; 4] {
+    [0; 4]
+}
+
 fn inputs_to_throttle(throttle: f32, pid_roll: f32, pid_pitch: f32, pid_yaw: f32) -> [u16; 4] {
     tele!(Category::Pid, "{throttle},{pid_roll},{pid_pitch},{pid_yaw}");
 
