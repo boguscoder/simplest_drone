@@ -12,15 +12,17 @@ pub enum Category {
 }
 
 #[cfg(feature = "telemetry")]
-pub static mut TELE_CATEGORY: Category = Category::None;
+pub static TELE_CATEGORY: portable_atomic::AtomicU8 = portable_atomic::AtomicU8::new(0);
 
 #[macro_export]
 macro_rules! tele {
     ($cat:expr, $($arg:tt)*) => {
         #[cfg(feature = "telemetry")]
         {
-            let log_tele = unsafe {$crate::telemetry::TELE_CATEGORY} == $cat;
-            if log_tele {
+            let current = $crate::telemetry::Category::try_from(
+                $crate::telemetry::TELE_CATEGORY.load(portable_atomic::Ordering::Relaxed)
+            ).unwrap_or($crate::telemetry::Category::None);
+            if current == $cat {
                 $crate::rl_log!($crate::LOG_DIVISIOR, $($arg)*);
             }
         }

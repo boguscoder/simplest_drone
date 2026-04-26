@@ -16,12 +16,9 @@
 #[macro_export]
 macro_rules! rl_log {
     ($count_limit:expr, $($arg:tt)*) => {
-        static mut __CALL_COUNTER: usize = 0;
+        static __CALL_COUNTER: portable_atomic::AtomicUsize = portable_atomic::AtomicUsize::new(0);
 
-        let pass_log = unsafe {
-            __CALL_COUNTER += 1;
-            __CALL_COUNTER % ($count_limit as usize) == 0
-        };
+        let pass_log = __CALL_COUNTER.fetch_add(1, portable_atomic::Ordering::Relaxed) % ($count_limit as usize) == 0;
         if pass_log {
             log::info!($($arg)*);
         }

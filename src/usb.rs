@@ -1,6 +1,6 @@
 #![cfg(feature = "logging")]
 
-use crate::telemetry::{Category, TELE_CATEGORY};
+use crate::telemetry::Category;
 use embassy_futures::join::join;
 use embassy_rp::bind_interrupts;
 use embassy_rp::peripherals::USB;
@@ -20,12 +20,12 @@ fn handle_data(data: &[u8]) {
     #[cfg(feature = "telemetry")]
     {
         match Category::try_from(data[0]) {
-            Ok(cat) => unsafe {
-                TELE_CATEGORY = cat;
-            },
-            Err(_) => unsafe {
-                TELE_CATEGORY = Category::None;
-            },
+            Ok(cat) => {
+                crate::telemetry::TELE_CATEGORY.store(cat as u8, portable_atomic::Ordering::Relaxed);
+            }
+            Err(_) => {
+                crate::telemetry::TELE_CATEGORY.store(Category::None as u8, portable_atomic::Ordering::Relaxed);
+            }
         }
     }
 }
