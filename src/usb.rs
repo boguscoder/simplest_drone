@@ -5,7 +5,7 @@ use embassy_futures::join::join;
 use embassy_rp::bind_interrupts;
 use embassy_rp::peripherals::USB;
 use embassy_rp::usb::{Driver, InterruptHandler};
-use embassy_usb::class::cdc_acm::{CdcAcmClass, State};
+use embassy_usb::class::cdc_acm::{CdcAcmClass, State, Receiver, Sender};
 use embassy_usb::{Builder, Config};
 use static_cell::StaticCell;
 
@@ -13,8 +13,8 @@ bind_interrupts!(struct Irqs {
     USBCTRL_IRQ => InterruptHandler<USB>;
 });
 
-type AcmClass = CdcAcmClass<'static, Driver<'static, USB>>;
-type UsbDevice = embassy_usb::UsbDevice<'static, Driver<'static, USB>>;
+type UsbDriver = Driver<'static, USB>;
+type UsbDevice = embassy_usb::UsbDevice<'static, UsbDriver>;
 
 fn handle_data(data: &[u8]) {
     #[cfg(feature = "telemetry")]
@@ -30,26 +30,38 @@ fn handle_data(data: &[u8]) {
     }
 }
 
-async fn usb_log_task(class: AcmClass) {
+async fn usb_log_task(class: CdcAcmClass<'static, UsbDriver>) {
     embassy_usb_logger::with_class!(1024, log::LevelFilter::Info, class).await
 }
 
-async fn usb_read_task(mut class: AcmClass) {
+#[cfg(feature = "telemetry")]
+async fn usb_telemetry_task(mut sender: Sender<'static, UsbDriver>) {
+    let receiver = crate::telemetry::TELE_CHANNEL.receiver();
+    loop {
+        sender.wait_connection().await;
+        loop {
+            let frame = receiver.receive().await;
+            let len = frame[1] as usize;
+            let frame_len = 2 + len * 4;
+            if sender.write_packet(&frame[..frame_len]).await.is_err() {
+                break;
+            }
+        }
+    }
+}
+
+async fn usb_read_task(mut receiver: Receiver<'static, UsbDriver>) {
     let mut buf = [0; 64];
     loop {
-        class.wait_connection().await;
-
+        receiver.wait_connection().await;
         loop {
-            match class.read_packet(&mut buf).await {
+            match receiver.read_packet(&mut buf).await {
                 Ok(count) => {
                     if count > 0 {
                         handle_data(&buf[..count]);
                     }
                 }
-                Err(e) => {
-                    log::error!("App Class RX Error: {:?}", e);
-                    break;
-                }
+                Err(_) => break,
             }
         }
     }
@@ -62,10 +74,10 @@ async fn usb_run_task(mut dev: UsbDevice) {
 #[embassy_executor::task]
 pub async fn usb_setup(p: embassy_rp::peripherals::USB) {
     let driver = Driver::new(p, Irqs);
-    let mut config = Config::new(0xc0de, 0xcafe);
+    let mut config = Config::new(0xc0de, 0xbabe);
     config.manufacturer = Some("Embassy");
-    config.product = Some("USB-serial console");
-    config.serial_number = Some("0xC0DECAFE");
+    config.product = Some("Drone Console");
+    config.serial_number = Some("0xBABECAFE");
     config.max_power = 100;
     config.max_packet_size_0 = 64;
 
@@ -79,7 +91,7 @@ pub async fn usb_setup(p: embassy_rp::peripherals::USB) {
             config,
             CONFIG_DESCRIPTOR.init([0; 256]),
             BOS_DESCRIPTOR.init([0; 256]),
-            &mut [], // no msos descriptors
+            &mut [], 
             CONTROL_BUF.init([0; 64]),
         )
     };
@@ -97,10 +109,19 @@ pub async fn usb_setup(p: embassy_rp::peripherals::USB) {
     };
 
     let usb = builder.build();
+    let (app_sender, app_receiver) = app_class.split();
 
     join(
         usb_run_task(usb),
-        join(usb_log_task(logger_class), usb_read_task(app_class)),
-    )
-    .await;
+        join(
+            usb_log_task(logger_class),
+            join(
+                usb_read_task(app_receiver),
+                #[cfg(feature = "telemetry")]
+                usb_telemetry_task(app_sender),
+                #[cfg(not(feature = "telemetry"))]
+                async { loop { embassy_time::Timer::after_secs(3600).await; } }
+            )
+        )
+    ).await;
 }

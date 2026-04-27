@@ -26,7 +26,7 @@ pub fn throttle_disarm() -> [u16; 4] {
 }
 
 fn inputs_to_throttle(throttle: f32, pid_roll: f32, pid_pitch: f32, pid_yaw: f32) -> [u16; 4] {
-    tele!(Category::Pid, "{throttle},{pid_roll},{pid_pitch},{pid_yaw}");
+    tele!(Category::Pid, throttle, pid_roll, pid_pitch, pid_yaw);
 
     let mixed_vals = [
         throttle - pid_pitch + pid_roll - pid_yaw,
@@ -37,7 +37,6 @@ fn inputs_to_throttle(throttle: f32, pid_roll: f32, pid_pitch: f32, pid_yaw: f32
 
     tele!(
         Category::Mix,
-        "{},{},{},{}",
         mixed_vals[0],
         mixed_vals[1],
         mixed_vals[2],
@@ -53,7 +52,6 @@ fn inputs_to_throttle(throttle: f32, pid_roll: f32, pid_pitch: f32, pid_yaw: f32
 
     tele!(
         Category::Dshot,
-        "{},{},{},{}",
         throttle_vals[0],
         throttle_vals[1],
         throttle_vals[2],
@@ -87,7 +85,7 @@ impl MotorInput {
 
     pub fn update(&mut self, rc_data: &RcData, imudata: &Data6Dof<f32>) -> [u16; 4] {
         #[rustfmt::skip]
-        tele!(Category::Imu, "{},{},{},{},{},{}",
+        tele!(Category::Imu,
             imudata.gyr[0], imudata.gyr[1], imudata.gyr[2],
             imudata.acc[0], imudata.acc[1], imudata.acc[2]);
         if let Some(att) = self.att_transformer.update(imudata) {

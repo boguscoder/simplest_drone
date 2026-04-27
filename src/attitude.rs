@@ -24,7 +24,6 @@ impl Attitude {
 
             tele!(
                 Category::Attitude,
-                "{},{},{}",
                 att[0].to_degrees(),
                 att[1].to_degrees(),
                 att[2].to_degrees()
