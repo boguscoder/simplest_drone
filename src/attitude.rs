@@ -1,7 +1,6 @@
-use crate::imu;
+use crate::imu::{IMU_TICK, ImuType};
 use crate::telemetry::Category;
 use ahrs::{Ahrs, Madgwick};
-use icm20948_async::Data6Dof;
 use nalgebra::Vector3;
 
 pub struct Attitude {
@@ -11,15 +10,16 @@ pub struct Attitude {
 impl Attitude {
     pub fn new() -> Attitude {
         Attitude {
-            ahrs: Madgwick::new(1.0 / imu::IMU_TICK as f32, 0.05),
+            ahrs: Madgwick::new(1.0 / IMU_TICK as f32, 0.05),
         }
     }
 
-    pub fn update(&mut self, raw_imu: &Data6Dof<f32>) -> Option<[f32; 3]> {
+    pub fn update(&mut self, raw_imu: &ImuType) -> Option<[f32; 3]> {
         let gyr = Vector3::from(raw_imu.gyr);
         let acc = Vector3::from(raw_imu.acc);
+        let mag = Vector3::from(raw_imu.mag);
 
-        if let Ok(quat) = self.ahrs.update_imu(&gyr, &acc) {
+        if let Ok(quat) = self.ahrs.update(&gyr, &acc, &mag) {
             let att: [f32; 3] = quat.euler_angles().into();
 
             tele!(

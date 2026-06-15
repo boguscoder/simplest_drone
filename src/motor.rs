@@ -1,8 +1,8 @@
 use crate::attitude::Attitude;
+use crate::imu::ImuType;
 use crate::pid::{self, Pid};
 use crate::rc::RcData;
 use crate::telemetry::Category;
-use icm20948_async::Data6Dof;
 
 const MAX_POWER: f32 = 0.6;
 const THROTTLE_MIN: f32 = 48.0;
@@ -83,11 +83,7 @@ impl MotorInput {
         }
     }
 
-    pub fn update(&mut self, rc_data: &RcData, imudata: &Data6Dof<f32>) -> [u16; 4] {
-        #[rustfmt::skip]
-        tele!(Category::Imu,
-            imudata.gyr[0], imudata.gyr[1], imudata.gyr[2],
-            imudata.acc[0], imudata.acc[1], imudata.acc[2]);
+    pub fn update(&mut self, rc_data: &RcData, imudata: &ImuType) -> [u16; 4] {
         if let Some(att) = self.att_transformer.update(imudata) {
             let pid_roll =
                 self.pid_roll.update(rc_data.roll() * ROLL_RATE, -att[0]) * ROLL_MIX_GAIN;
