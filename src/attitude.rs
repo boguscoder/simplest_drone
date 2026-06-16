@@ -17,22 +17,29 @@ impl Attitude {
     pub fn update(&mut self, raw_imu: &ImuType) -> Option<[f32; 3]> {
         let gyr = Vector3::from(raw_imu.gyr);
         let acc = Vector3::from(raw_imu.acc);
-        let mag = Vector3::from(raw_imu.mag);
 
-        if let Ok(quat) = self.ahrs.update(&gyr, &acc, &mag) {
-            let att: [f32; 3] = quat.euler_angles().into();
+        let update_result = match raw_imu.mag {
+            Some(raw_mag) => self.ahrs.update(&gyr, &acc, &Vector3::from(raw_mag)),
+            None => self.ahrs.update_imu(&gyr, &acc),
+        };
 
-            tele!(
-                Category::Attitude,
-                att[0].to_degrees(),
-                att[1].to_degrees(),
-                att[2].to_degrees()
-            );
+        match update_result {
+            Ok(quat) => {
+                let att: [f32; 3] = quat.euler_angles().into();
 
-            return Some(att);
-        } else {
-            log::error!("ahrs error");
+                tele!(
+                    Category::Attitude,
+                    att[0].to_degrees(),
+                    att[1].to_degrees(),
+                    att[2].to_degrees()
+                );
+
+                Some(att)
+            }
+            Err(e) => {
+                log::error!("ahrs error: {:?}", e);
+                None
+            }
         }
-        None
     }
 }
