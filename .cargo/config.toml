@@ -3,3 +3,8 @@ runner = "elf2uf2-rs --deploy"
 
 [build]
 target = "thumbv6m-none-eabi"        # Cortex-M0 and Cortex-M0+
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1

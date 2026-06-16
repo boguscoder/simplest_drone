@@ -1,13 +1,12 @@
-use crate::setup;
-use crate::telemetry::Category;
-use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
-use embassy_sync::watch::Watch;
+use crate::{attitude::Attitude, setup, telemetry::Category};
+use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, watch::Watch};
 use embassy_time::{Duration, Ticker};
 use nalgebra::Vector3;
 
 const CALIBRATION_TICKS: usize = 2000;
 
 pub const IMU_TICK: u64 = 1000;
+
 #[derive(Clone)]
 pub struct ImuType {
     pub acc: Vector3<f32>,
@@ -15,15 +14,17 @@ pub struct ImuType {
     pub mag: Option<Vector3<f32>>,
 }
 
-pub static IMU_DATA: Watch<CriticalSectionRawMutex, ImuType, 1> = Watch::new();
+pub static ATT_DATA: Watch<CriticalSectionRawMutex, [f32; 3], 1> = Watch::new();
 
 #[embassy_executor::task]
 pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
     let mut loop_ticker = Ticker::every(Duration::from_hz(IMU_TICK));
-    let imu_sender = IMU_DATA.sender();
     let mut calibration_ticks: usize = 0;
     let mut total_ticks: usize = 0;
     let mut gyr_bias: Vector3<f32> = Vector3::default();
+
+    let att_sender = ATT_DATA.sender();
+    let mut att_transformer = Attitude::new();
 
     loop {
         let Ok(imudata) = imu.read_6dof().await else {
@@ -63,7 +64,9 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
                 imu_fixed.gyr[0], imu_fixed.gyr[1], imu_fixed.gyr[2],
                 imu_fixed.acc[0], imu_fixed.acc[1], imu_fixed.acc[2]);
 
-            imu_sender.send(imu_fixed);
+            if let Some(att) = att_transformer.update(&imu_fixed) {
+                att_sender.send(att)
+            }
         }
 
         total_ticks += 1;

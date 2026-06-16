@@ -16,7 +16,6 @@ mod setup;
 mod usb;
 
 use arming::{Arming, ArmingState};
-use attitude::Attitude;
 use dshot_pio::DshotPioTrait;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Ticker};
@@ -35,17 +34,13 @@ async fn main(spawner: Spawner) {
     let mut loop_ticker = Ticker::every(Duration::from_hz(TICK_HZ));
     let mut motor = motor::MotorInput::new(1.0 / TICK_HZ as f32);
     let mut arming = Arming::new();
-    let mut att_transformer = Attitude::new();
     let mut rc_reader = rc::RC_DATA.receiver().unwrap();
-    let mut imu_reader = imu::IMU_DATA.receiver().unwrap();
+    let mut att_reader = imu::ATT_DATA.receiver().unwrap();
 
     const ZERO_RC: RcData = RcData::from_channels([0; 16]);
 
     loop {
-        let att = imu_reader
-            .try_get()
-            .and_then(|imu| att_transformer.update(&imu));
-
+        let att = att_reader.try_get();
         let rc = rc_reader.try_get();
 
         let rc_ref = rc.as_ref().unwrap_or(&ZERO_RC);
