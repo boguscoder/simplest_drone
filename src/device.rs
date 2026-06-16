@@ -5,6 +5,7 @@ use embassy_rp::{bind_interrupts, peripherals};
 
 #[cfg(feature = "feather")]
 pub mod device_impl {
+    pub type Core1Peripheral = super::peripherals::CORE1;
     pub type SbusUartPeripheral = super::peripherals::UART1;
     pub type SbusUartPin = super::peripherals::PIN_9;
     pub type SbusDmaChannel = super::peripherals::DMA_CH1;
@@ -28,6 +29,7 @@ pub mod device_impl {
 
 #[cfg(not(feature = "feather"))]
 mod device_impl {
+    pub type Core1Peripheral = super::peripherals::CORE1;
     pub type SbusUartPeripheral = super::peripherals::UART1;
     pub type SbusUartPin = super::peripherals::PIN_5;
     pub type SbusDmaChannel = super::peripherals::DMA_CH1;
@@ -72,6 +74,7 @@ pub struct Dshot {
 }
 
 pub struct Device {
+    pub core1: Core1Peripheral,
     pub rc: Sbus,
     pub imu: I2c,
     pub motors: Dshot,
@@ -83,6 +86,7 @@ impl Device {
     #[cfg(feature = "feather")]
     pub fn new(p: embassy_rp::Peripherals) -> Device {
         Device {
+            core1: CORE1,
             rc: Sbus {
                 uart: p.UART1,
                 rx: p.PIN_9,
@@ -108,6 +112,7 @@ impl Device {
     #[cfg(not(feature = "feather"))]
     pub fn new(p: embassy_rp::Peripherals) -> Device {
         Device {
+            core1: p.CORE1,
             rc: Sbus {
                 uart: p.UART1,
                 rx: p.PIN_5,

@@ -51,10 +51,14 @@ async fn main(spawner: Spawner) {
         let rc_ref = rc.as_ref().unwrap_or(&ZERO_RC);
         arming.update(rc_ref, rc.is_some());
 
-        match (arming.state(), att, rc) {
-            (ArmingState::Armed, Some(att), Some(rc)) => {
-                dshot.throttle_clamp(motor.update(&rc, &att));
-            }
+        let throttle = if let (Some(att), Some(rc)) = (att, rc) {
+            Some(motor.update(&rc, &att))
+        } else {
+            None
+        };
+
+        match (throttle, arming.state()) {
+            (Some(t), ArmingState::Armed) => dshot.throttle_clamp(t),
             _ => dshot.throttle_minimum(),
         }
 

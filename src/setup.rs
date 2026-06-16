@@ -1,15 +1,16 @@
+use crate::imu;
+use crate::rc;
 use dshot_pio::DshotPioTrait;
 use dshot_pio::dshot_embassy_rp::DshotPio;
-use embassy_executor::Spawner;
+use embassy_executor::{Executor, Spawner};
 use embassy_rp::i2c;
+use embassy_rp::multicore::Stack;
 use embassy_rp::uart::{self, DataBits, Parity, StopBits, UartRx};
 use embassy_time::{Delay, Timer};
 use icm20948_async::{
     AccDlp, AccRange, AccUnit, BusI2c, GyrDlp, GyrRange, GyrUnit, Icm20948, IcmBuilder,
 };
-
-use crate::imu;
-use crate::rc;
+use static_cell::StaticCell;
 
 #[cfg(feature = "logging")]
 use crate::usb;
@@ -73,7 +74,16 @@ pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
     let Ok(imu) = imu_result else {
         panic!("Failed to initialize IMU")
     };
-    spawner.must_spawn(imu::imu_task(imu));
+
+    static CORE_EXECUTOR: StaticCell<Executor> = StaticCell::new();
+    static CORE_STACK: StaticCell<Stack<2048>> = StaticCell::new();
+
+    embassy_rp::multicore::spawn_core1(device.core1, CORE_STACK.init(Stack::new()), move || {
+        let executor = CORE_EXECUTOR.init(Executor::new());
+        executor.run(|spawner| {
+            spawner.must_spawn(imu::imu_task(imu));
+        })
+    });
 
     // Motors via DSHOT setup //
     log::info!("// Motors via DSHOT setup //");

@@ -1,7 +1,7 @@
 use crate::setup;
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::watch::Watch;
-use embassy_time::{Duration, Ticker, with_timeout};
+use embassy_time::{Duration, with_timeout};
 
 const RC_MIN: u16 = 240;
 const RC_MAX: u16 = 1807;
@@ -56,7 +56,6 @@ pub async fn rc_task(mut uart: setup::UartReader) -> ! {
     let mut read_buffer = [0u8; 25];
     let mut sbusparser = sbus_parser::receiver::Receiver::new();
     let rc_sender = RC_DATA.sender();
-    let mut loop_ticker = Ticker::every(Duration::from_hz(100));
 
     loop {
         let read_result = with_timeout(rc_timeout, uart.read(&mut read_buffer)).await;
@@ -82,6 +81,5 @@ pub async fn rc_task(mut uart: setup::UartReader) -> ! {
             }
         }
         rc_sender.clear();
-        loop_ticker.next().await;
     }
 }
