@@ -1,5 +1,3 @@
-use crate::attitude::Attitude;
-use crate::imu::ImuType;
 use crate::pid::{self, Pid};
 use crate::rc::RcData;
 use crate::telemetry::Category;
@@ -19,10 +17,6 @@ const YAW_MIX_GAIN: f32 = 0.4;
 
 pub fn pid_to_throttle(rc: f32) -> u16 {
     (THROTTLE_MIN + SLOPE * rc) as u16
-}
-
-pub fn throttle_disarm() -> [u16; 4] {
-    [0; 4]
 }
 
 fn inputs_to_throttle(throttle: f32, pid_roll: f32, pid_pitch: f32, pid_yaw: f32) -> [u16; 4] {
@@ -65,7 +59,6 @@ pub struct MotorInput {
     pid_roll: Pid,
     pid_pitch: Pid,
     pid_yaw: Pid,
-    att_transformer: Attitude,
 }
 
 impl MotorInput {
@@ -79,20 +72,15 @@ impl MotorInput {
             pid_roll: Pid::new(0.8, 0.0, 0.05, cycle_time, pid_limits, d_filter_cutoff_hz),
             pid_pitch: Pid::new(0.8, 0.0, 0.05, cycle_time, pid_limits, d_filter_cutoff_hz),
             pid_yaw: Pid::new(0.8, 0.0, 0.05, cycle_time, pid_limits, d_filter_cutoff_hz),
-            att_transformer: Attitude::new(),
         }
     }
 
-    pub fn update(&mut self, rc_data: &RcData, imudata: &ImuType) -> [u16; 4] {
-        if let Some(att) = self.att_transformer.update(imudata) {
-            let pid_roll =
-                self.pid_roll.update(rc_data.roll() * ROLL_RATE, -att[0]) * ROLL_MIX_GAIN;
-            let pid_pitch =
-                self.pid_pitch.update(rc_data.pitch() * PITCH_RATE, att[1]) * PITCH_MIX_GAIN;
-            let pid_yaw = self.pid_yaw.update(rc_data.yaw() * YAW_RATE, att[2]) * YAW_MIX_GAIN;
+    pub fn update(&mut self, rc_data: &RcData, att: &[f32; 3]) -> [u16; 4] {
+        let pid_roll = self.pid_roll.update(rc_data.roll() * ROLL_RATE, -att[0]) * ROLL_MIX_GAIN;
+        let pid_pitch =
+            self.pid_pitch.update(rc_data.pitch() * PITCH_RATE, att[1]) * PITCH_MIX_GAIN;
+        let pid_yaw = self.pid_yaw.update(rc_data.yaw() * YAW_RATE, att[2]) * YAW_MIX_GAIN;
 
-            return inputs_to_throttle(rc_data.throttle(), pid_roll, pid_pitch, pid_yaw);
-        }
-        [0; 4]
+        inputs_to_throttle(rc_data.throttle(), pid_roll, pid_pitch, pid_yaw)
     }
 }

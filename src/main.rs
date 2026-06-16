@@ -16,6 +16,7 @@ mod setup;
 mod usb;
 
 use arming::{Arming, ArmingState};
+use attitude::Attitude;
 use dshot_pio::DshotPioTrait;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Ticker};
@@ -34,33 +35,27 @@ async fn main(spawner: Spawner) {
     let mut loop_ticker = Ticker::every(Duration::from_hz(TICK_HZ));
     let mut motor = motor::MotorInput::new(1.0 / TICK_HZ as f32);
     let mut arming = Arming::new();
-
+    let mut att_transformer = Attitude::new();
     let mut rc_reader = rc::RC_DATA.receiver().unwrap();
     let mut imu_reader = imu::IMU_DATA.receiver().unwrap();
-    let zero_rc = RcData::from_channels([0; 16]);
+
+    const ZERO_RC: RcData = RcData::from_channels([0; 16]);
 
     loop {
-        let imu_data = imu_reader.try_get();
-        let rc_data = rc_reader.try_get();
-        let rc_valid = rc_data.is_some();
+        let att = imu_reader
+            .try_get()
+            .and_then(|imu| att_transformer.update(&imu));
 
-        if let Some(ref rc) = rc_data {
-            arming.update(rc, rc_valid);
-        } else {
-            arming.update(&zero_rc, rc_valid);
-        }
+        let rc = rc_reader.try_get();
 
-        if arming.state() == ArmingState::Armed {
-            if let Some(imudata) = imu_data {
-                if let Some(rc) = rc_data {
-                    let throttle = motor.update(&rc, &imudata);
-                    dshot.throttle_clamp(throttle);
-                } else {
-                    dshot.throttle_minimum();
-                }
+        let rc_ref = rc.as_ref().unwrap_or(&ZERO_RC);
+        arming.update(rc_ref, rc.is_some());
+
+        match (arming.state(), att, rc) {
+            (ArmingState::Armed, Some(att), Some(rc)) => {
+                dshot.throttle_clamp(motor.update(&rc, &att));
             }
-        } else {
-            dshot.throttle_clamp(motor::throttle_disarm());
+            _ => dshot.throttle_minimum(),
         }
 
         loop_ticker.next().await;

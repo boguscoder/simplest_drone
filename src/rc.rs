@@ -13,7 +13,7 @@ pub static RC_DATA: Watch<CriticalSectionRawMutex, RcData, 1> = Watch::new();
 pub struct RcData([u16; 16]);
 
 impl RcData {
-    pub fn from_channels(channels: [u16; 16]) -> RcData {
+    pub const fn from_channels(channels: [u16; 16]) -> RcData {
         RcData(channels)
     }
 
