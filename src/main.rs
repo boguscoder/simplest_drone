@@ -13,6 +13,8 @@ mod motor;
 mod pid;
 mod rc;
 mod setup;
+
+#[cfg(feature = "logging")]
 mod usb;
 
 use arming::{Arming, ArmingState};
@@ -53,7 +55,7 @@ async fn main(spawner: Spawner) {
         };
 
         match (throttle, arming.state()) {
-            (Some(t), ArmingState::Armed) => dshot.throttle_clamp(t).unwrap(),
+            (Some(t), ArmingState::Armed) => dshot.throttle_clamp(t).unwrap_or_default(),
             _ => dshot.throttle_idle(),
         }
 
