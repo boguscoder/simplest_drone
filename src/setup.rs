@@ -1,11 +1,13 @@
-use crate::imu;
-use crate::rc;
-use dshot_pio::DshotPioTrait;
-use dshot_pio::dshot_embassy_rp::DshotPio;
+use crate::{imu, rc};
+use embassy_dshot::{DshotPioTrait, DshotSpeed, rp::DshotPio};
 use embassy_executor::{Executor, Spawner};
-use embassy_rp::i2c;
-use embassy_rp::multicore::Stack;
-use embassy_rp::uart::{self, DataBits, Parity, StopBits, UartRx};
+use embassy_rp::{
+    clocks::{ClockConfig, CoreVoltage},
+    config::Config,
+    i2c,
+    multicore::Stack,
+    uart::{self, DataBits, Parity, StopBits, UartRx},
+};
 use embassy_time::{Delay, Timer};
 use icm20948_async::{
     AccDlp, AccRange, AccUnit, BusI2c, GyrDlp, GyrRange, GyrUnit, Icm20948, IcmBuilder,
@@ -19,13 +21,18 @@ pub type ImuReader = Icm20948<
     BusI2c<i2c::I2c<'static, crate::device::I2cPeripheral, i2c::Async>>,
     icm20948_async::MagEnabled,
 >;
-pub type UartReader = UartRx<'static, crate::device::SbusUartPeripheral, uart::Async>;
+pub type UartReader = UartRx<'static, uart::Async>;
 
 pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
-    let device = crate::device::Device::new(embassy_rp::init(Default::default()));
+    let mut clock_cfg = ClockConfig::system_freq(200_000_000).unwrap();
+    clock_cfg.core_voltage = CoreVoltage::V1_15;
+    let mut config = Config::default();
+    config.clocks = clock_cfg;
+    let peripherals = embassy_rp::init(config);
+    let device = crate::device::Device::new(peripherals);
 
     #[cfg(feature = "logging")]
-    spawner.must_spawn(usb::usb_setup(device.usb));
+    spawner.spawn(usb::usb_setup(device.usb).unwrap());
 
     // RC via SBUS setup //
     log::info!("// RC via SBUS setup //");
@@ -44,7 +51,7 @@ pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
         device.rc.dma,
         sbus_uart_config,
     );
-    spawner.must_spawn(rc::rc_task(uart_rx));
+    spawner.spawn(rc::rc_task(uart_rx).unwrap());
 
     // IMU via UART setup //
     log::info!("// IMU via UART setup //");
@@ -81,7 +88,7 @@ pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
     embassy_rp::multicore::spawn_core1(device.core1, CORE_STACK.init(Stack::new()), move || {
         let executor = CORE_EXECUTOR.init(Executor::new());
         executor.run(|spawner| {
-            spawner.must_spawn(imu::imu_task(imu));
+            spawner.spawn(imu::imu_task(imu).unwrap());
         })
     });
 
@@ -92,15 +99,15 @@ pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
         device.motors.pio,
         crate::device::Irqs,
         //                // My Solder:)  // Canonical 'X' // Place
-        device.motors.m1, // M4           // M1            // Front Right
-        device.motors.m2, // M1           // M2            // Back Left
-        device.motors.m3, // M2           // M3            // Front Left
-        device.motors.m4, // M3           // M4            // Back Right
-        (52, 0),          // clock divider
+        device.motors.m1,     // M4           // M1            // Front Right
+        device.motors.m2,     // M1           // M2            // Back Left
+        device.motors.m3,     // M2           // M3            // Front Left
+        device.motors.m4,     // M3           // M4            // Back Right
+        DshotSpeed::DShot600, // clock divider
     );
 
     for _ in 0..20 {
-        dshot.throttle_minimum();
+        dshot.throttle_idle();
         Timer::after_millis(50).await;
     }
     dshot

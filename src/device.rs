@@ -1,11 +1,12 @@
-use embassy_rp::i2c::InterruptHandler as I2CHandler;
-use embassy_rp::pio::InterruptHandler as PioHandler;
-use embassy_rp::uart::InterruptHandler as UartHandler;
-use embassy_rp::{bind_interrupts, peripherals};
+use embassy_rp::{
+    Peri, bind_interrupts, i2c::InterruptHandler as I2CHandler, peripherals,
+    pio::InterruptHandler as PioHandler, uart::InterruptHandler as UartHandler,
+};
 
 #[cfg(feature = "feather")]
 pub mod device_impl {
     pub type Core1Peripheral = super::peripherals::CORE1;
+
     pub type SbusUartPeripheral = super::peripherals::UART1;
     pub type SbusUartPin = super::peripherals::PIN_9;
     pub type SbusDmaChannel = super::peripherals::DMA_CH1;
@@ -20,6 +21,9 @@ pub mod device_impl {
     pub type DshotPioM3Pin = super::peripherals::PIN_12;
     pub type DshotPioM4Pin = super::peripherals::PIN_11;
 
+    #[cfg(feature = "logging")]
+    pub type USBPeripheral = super::peripherals::USB;
+
     super::bind_interrupts!(pub struct Irqs {
         UART1_IRQ => super::UartHandler<SbusUartPeripheral>;
         PIO0_IRQ_0 => super::PioHandler<DshotPioPeripheral>;
@@ -30,6 +34,7 @@ pub mod device_impl {
 #[cfg(not(feature = "feather"))]
 mod device_impl {
     pub type Core1Peripheral = super::peripherals::CORE1;
+
     pub type SbusUartPeripheral = super::peripherals::UART1;
     pub type SbusUartPin = super::peripherals::PIN_5;
     pub type SbusDmaChannel = super::peripherals::DMA_CH1;
@@ -44,6 +49,9 @@ mod device_impl {
     pub type DshotPioM3Pin = super::peripherals::PIN_21;
     pub type DshotPioM4Pin = super::peripherals::PIN_11;
 
+    #[cfg(feature = "logging")]
+    pub type USBPeripheral = super::peripherals::USB;
+
     super::bind_interrupts!(pub struct Irqs {
         UART1_IRQ => super::UartHandler<SbusUartPeripheral>;
         PIO0_IRQ_0 => super::PioHandler<DshotPioPeripheral>;
@@ -54,39 +62,39 @@ mod device_impl {
 pub use device_impl::*;
 
 pub struct Sbus {
-    pub uart: SbusUartPeripheral,
-    pub rx: SbusUartPin,
-    pub dma: SbusDmaChannel,
+    pub uart: Peri<'static, SbusUartPeripheral>,
+    pub rx: Peri<'static, SbusUartPin>,
+    pub dma: Peri<'static, SbusDmaChannel>,
 }
 
 pub struct I2c {
-    pub i2c: I2cPeripheral,
-    pub sda: I2cSdaPin,
-    pub scl: I2cSclPin,
+    pub i2c: Peri<'static, I2cPeripheral>,
+    pub sda: Peri<'static, I2cSdaPin>,
+    pub scl: Peri<'static, I2cSclPin>,
 }
 
 pub struct Dshot {
-    pub pio: DshotPioPeripheral,
-    pub m1: DshotPioM1Pin,
-    pub m2: DshotPioM2Pin,
-    pub m3: DshotPioM3Pin,
-    pub m4: DshotPioM4Pin,
+    pub pio: Peri<'static, DshotPioPeripheral>,
+    pub m1: Peri<'static, DshotPioM1Pin>,
+    pub m2: Peri<'static, DshotPioM2Pin>,
+    pub m3: Peri<'static, DshotPioM3Pin>,
+    pub m4: Peri<'static, DshotPioM4Pin>,
 }
 
 pub struct Device {
-    pub core1: Core1Peripheral,
+    pub core1: Peri<'static, Core1Peripheral>,
     pub rc: Sbus,
     pub imu: I2c,
     pub motors: Dshot,
     #[cfg(feature = "logging")]
-    pub usb: embassy_rp::peripherals::USB,
+    pub usb: Peri<'static, USBPeripheral>,
 }
 
 impl Device {
     #[cfg(feature = "feather")]
     pub fn new(p: embassy_rp::Peripherals) -> Device {
         Device {
-            core1: CORE1,
+            core1: p.CORE1,
             rc: Sbus {
                 uart: p.UART1,
                 rx: p.PIN_9,

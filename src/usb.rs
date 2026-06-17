@@ -5,7 +5,7 @@ use embassy_futures::join::join;
 use embassy_rp::bind_interrupts;
 use embassy_rp::peripherals::USB;
 use embassy_rp::usb::{Driver, InterruptHandler};
-use embassy_usb::class::cdc_acm::{CdcAcmClass, State, Receiver, Sender};
+use embassy_usb::class::cdc_acm::{CdcAcmClass, Receiver, Sender, State};
 use embassy_usb::{Builder, Config};
 use static_cell::StaticCell;
 
@@ -21,10 +21,12 @@ fn handle_data(data: &[u8]) {
     {
         match Category::try_from(data[0]) {
             Ok(cat) => {
-                crate::telemetry::TELE_CATEGORY.store(cat as u8, portable_atomic::Ordering::Relaxed);
+                crate::telemetry::TELE_CATEGORY
+                    .store(cat as u8, portable_atomic::Ordering::Relaxed);
             }
             Err(_) => {
-                crate::telemetry::TELE_CATEGORY.store(Category::None as u8, portable_atomic::Ordering::Relaxed);
+                crate::telemetry::TELE_CATEGORY
+                    .store(Category::None as u8, portable_atomic::Ordering::Relaxed);
             }
         }
     }
@@ -54,14 +56,10 @@ async fn usb_read_task(mut receiver: Receiver<'static, UsbDriver>) {
     let mut buf = [0; 64];
     loop {
         receiver.wait_connection().await;
-        loop {
-            match receiver.read_packet(&mut buf).await {
-                Ok(count) => {
-                    if count > 0 {
-                        handle_data(&buf[..count]);
-                    }
-                }
-                Err(_) => break,
+
+        while let Ok(count) = receiver.read_packet(&mut buf).await {
+            if count > 0 {
+                handle_data(&buf[..count]);
             }
         }
     }
@@ -72,7 +70,7 @@ async fn usb_run_task(mut dev: UsbDevice) {
 }
 
 #[embassy_executor::task]
-pub async fn usb_setup(p: embassy_rp::peripherals::USB) {
+pub async fn usb_setup(p: embassy_rp::Peri<'static, embassy_rp::peripherals::USB>) {
     let driver = Driver::new(p, Irqs);
     let mut config = Config::new(0xc0de, 0xbabe);
     config.manufacturer = Some("Embassy");
@@ -91,7 +89,7 @@ pub async fn usb_setup(p: embassy_rp::peripherals::USB) {
             config,
             CONFIG_DESCRIPTOR.init([0; 256]),
             BOS_DESCRIPTOR.init([0; 256]),
-            &mut [], 
+            &mut [],
             CONTROL_BUF.init([0; 64]),
         )
     };
@@ -120,8 +118,13 @@ pub async fn usb_setup(p: embassy_rp::peripherals::USB) {
                 #[cfg(feature = "telemetry")]
                 usb_telemetry_task(app_sender),
                 #[cfg(not(feature = "telemetry"))]
-                async { loop { embassy_time::Timer::after_secs(3600).await; } }
-            )
-        )
-    ).await;
+                async {
+                    loop {
+                        embassy_time::Timer::after_secs(3600).await;
+                    }
+                },
+            ),
+        ),
+    )
+    .await;
 }

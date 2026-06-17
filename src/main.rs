@@ -16,7 +16,7 @@ mod setup;
 mod usb;
 
 use arming::{Arming, ArmingState};
-use dshot_pio::DshotPioTrait;
+use embassy_dshot::DshotPioTrait;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Ticker};
 use panic_probe as _;
@@ -53,8 +53,8 @@ async fn main(spawner: Spawner) {
         };
 
         match (throttle, arming.state()) {
-            (Some(t), ArmingState::Armed) => dshot.throttle_clamp(t),
-            _ => dshot.throttle_minimum(),
+            (Some(t), ArmingState::Armed) => dshot.throttle_clamp(t).unwrap(),
+            _ => dshot.throttle_idle(),
         }
 
         loop_ticker.next().await;
