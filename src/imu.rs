@@ -7,13 +7,6 @@ const CALIBRATION_TICKS: usize = 2000;
 
 pub const IMU_TICK: u64 = 1000;
 
-#[derive(Clone)]
-pub struct ImuType {
-    pub acc: Vector3<f32>,
-    pub gyr: Vector3<f32>,
-    pub mag: Option<Vector3<f32>>,
-}
-
 pub static ATT_DATA: Watch<CriticalSectionRawMutex, [f32; 3], 1> = Watch::new();
 
 #[embassy_executor::task]
@@ -21,7 +14,7 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
     let mut loop_ticker = Ticker::every(Duration::from_hz(IMU_TICK));
     let mut calibration_ticks: usize = 0;
     let mut total_ticks: usize = 0;
-    let mut gyr_bias: Vector3<f32> = Vector3::default();
+    let mut gyr_bias: Vector3<f32> = Vector3::zeros();
 
     let att_sender = ATT_DATA.sender();
     let mut att_transformer = Attitude::new();
@@ -48,28 +41,29 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
             calibration_ticks += 1;
         } else {
             let mag = if total_ticks.is_multiple_of(10) {
-                imu.read_mag().await.ok().map(Vector3::from)
+                imu.read_mag()
+                    .await
+                    .ok()
+                    .map(Vector3::from)
+                    .unwrap_or_else(Vector3::zeros)
             } else {
-                None
+                Vector3::<f32>::zeros()
             };
 
-            let imu_fixed = ImuType {
-                gyr: Vector3::from(imudata.gyr) - gyr_bias,
-                acc: Vector3::from(imudata.acc),
-                mag,
-            };
+            let corrected_gyr = Vector3::from(imudata.gyr) - gyr_bias;
+            let acc = Vector3::from(imudata.acc);
 
             #[rustfmt::skip]
             tele!(Category::Imu,
-                imu_fixed.gyr[0], imu_fixed.gyr[1], imu_fixed.gyr[2],
-                imu_fixed.acc[0], imu_fixed.acc[1], imu_fixed.acc[2]);
+                corrected_gyr[0], corrected_gyr[1], corrected_gyr[2],
+                acc[0], acc[1], acc[2]);
 
-            if let Some(att) = att_transformer.update(&imu_fixed) {
+            if let Some(att) = att_transformer.update(&corrected_gyr, &acc, &mag) {
                 att_sender.send(att)
             }
+            total_ticks += 1;
         }
 
-        total_ticks += 1;
         loop_ticker.next().await;
     }
 }
