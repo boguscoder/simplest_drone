@@ -32,12 +32,12 @@ impl Arming {
         throttle < 0.1
     }
 
-    fn yaw_right(yaw: f32) -> bool {
-        yaw > 0.8
+    fn arm_switch_high(rc_data: &RcData) -> bool {
+        rc_data.arm_switch() > 0.5
     }
 
-    fn yaw_left(yaw: f32) -> bool {
-        yaw < -0.8
+    fn arm_switch_low(rc_data: &RcData) -> bool {
+        rc_data.arm_switch() < 0.5
     }
 
     pub fn update(&mut self, rc_data: &RcData, rc_valid: bool) -> ArmingState {
@@ -64,10 +64,10 @@ impl Arming {
     }
 
     fn try_arm(&mut self, rc_data: &RcData) {
-        if Self::throttle_low(rc_data.throttle()) && Self::yaw_right(rc_data.yaw()) {
+        if Self::throttle_low(rc_data.throttle()) && Self::arm_switch_high(rc_data) {
             self.arm_request_ticks += 1;
             if self.arm_request_ticks >= ARM_HOLD_TICKS {
-                log::info!("Armed (stick command)");
+                log::info!("Armed (switch command)");
                 self.state = ArmingState::Armed;
                 self.arm_request_ticks = 0;
             }
@@ -77,10 +77,10 @@ impl Arming {
     }
 
     fn try_disarm(&mut self, rc_data: &RcData) {
-        if Self::throttle_low(rc_data.throttle()) && Self::yaw_left(rc_data.yaw()) {
+        if Self::arm_switch_low(rc_data) {
             self.disarm_request_ticks += 1;
             if self.disarm_request_ticks >= ARM_HOLD_TICKS {
-                log::info!("Disarmed (stick command)");
+                log::info!("Disarmed (switch command)");
                 self.state = ArmingState::Disarmed;
                 self.disarm_request_ticks = 0;
             }

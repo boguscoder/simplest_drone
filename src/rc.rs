@@ -5,7 +5,6 @@ use embassy_time::{Duration, with_timeout};
 
 const RC_MIN: u16 = 240;
 const RC_MAX: u16 = 1807;
-const RC_FAILSAFE: u16 = 1500;
 
 pub static RC_DATA: Watch<CriticalSectionRawMutex, RcData, 1> = Watch::new();
 
@@ -33,8 +32,8 @@ impl RcData {
         Self::normalize(self.0[3], RC_MIN, RC_MAX, -1.0, 1.0)
     }
 
-    fn swd(&self) -> u16 {
-        self.0[6]
+    pub fn arm_switch(&self) -> f32 {
+        Self::normalize(self.0[6], RC_MIN, RC_MAX, 0.0, 1.0)
     }
 
     fn normalize(
@@ -65,12 +64,8 @@ pub async fn rc_task(mut uart: setup::UartReader) -> ! {
                     log::trace!("rc {:?}", packet.channels);
 
                     let rc_data = RcData::from_channels(packet.channels);
-                    if rc_data.swd() >= RC_FAILSAFE {
-                        log::error!("Failsafe");
-                    } else {
-                        rc_sender.send(rc_data);
-                        continue;
-                    }
+                    rc_sender.send(rc_data);
+                    continue;
                 }
             }
             Ok(Err(_e)) => {
