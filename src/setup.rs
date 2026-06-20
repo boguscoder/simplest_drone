@@ -8,7 +8,7 @@ use embassy_rp::{
     multicore::Stack,
     uart::{self, DataBits, Parity, StopBits, UartRx},
 };
-use embassy_time::{Delay, Timer};
+use embassy_time::Delay;
 use icm20948_async::{
     AccDlp, AccRange, AccUnit, BusI2c, GyrDlp, GyrRange, GyrUnit, Icm20948, IcmBuilder,
 };
@@ -95,7 +95,7 @@ pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
     // Motors via DSHOT setup //
     log::info!("// Motors via DSHOT setup //");
 
-    let mut dshot = DshotPio::<4, _>::new(
+    DshotPio::<4, _>::new(
         device.motors.pio,
         crate::device::Irqs,
         //                // My Solder:)  // Canonical 'X' // Place
@@ -104,11 +104,5 @@ pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
         device.motors.m3,     // M2           // M3            // Front Left
         device.motors.m4,     // M3           // M4            // Back Right
         DshotSpeed::DShot600, // clock divider
-    );
-
-    for _ in 0..20 {
-        dshot.throttle_idle();
-        Timer::after_millis(50).await;
-    }
-    dshot
+    )
 }

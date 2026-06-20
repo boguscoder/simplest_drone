@@ -18,7 +18,7 @@ mod setup;
 mod usb;
 
 use arming::{Arming, ArmingState};
-use embassy_dshot::DshotPioTrait;
+use embassy_dshot::{Command, DshotPioTrait};
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Ticker};
 use panic_probe as _;
@@ -56,7 +56,7 @@ async fn main(spawner: Spawner) {
 
         match (throttle, arming.state()) {
             (Some(t), ArmingState::Armed) => dshot.throttle_clamp(t).unwrap_or_default(),
-            _ => dshot.throttle_idle(),
+            _ => dshot.send_command(Command::MotorStop),
         }
 
         loop_ticker.next().await;
