@@ -59,13 +59,18 @@ pub async fn rc_task(mut uart: setup::UartReader) -> ! {
     loop {
         let read_result = with_timeout(rc_timeout, uart.read(&mut read_buffer)).await;
         match read_result {
-            Ok(Ok(_)) => {
+            Ok(Ok(())) => {
                 if let Some(packet) = sbusparser.receive(&read_buffer) {
                     log::trace!("rc {:?}", packet.channels);
 
-                    let rc_data = RcData::from_channels(packet.channels);
-                    rc_sender.send(rc_data);
-                    continue;
+                    match packet.failsafe {
+                        false => {
+                            let rc_data = RcData::from_channels(packet.channels);
+                            rc_sender.send(rc_data);
+                            continue;
+                        }
+                        true => log::error!("Failsafe"),
+                    }
                 }
             }
             Ok(Err(_e)) => {

@@ -2,8 +2,8 @@ use crate::rc::RcData;
 
 /// Minimum number of ticks (1ms each) to hold arming stick position
 const ARM_HOLD_TICKS: u64 = 1000;
-/// Number of failsafe ticks before auto-disarming (2 seconds at 1kHz)
-const FAILSAFE_DISARM_TICKS: u64 = 2000;
+/// Number of failsafe ticks before auto-disarming (0.5 seconds at 1kHz)
+const FAILSAFE_DISARM_TICKS: u64 = 500;
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum ArmingState {
