@@ -1,4 +1,4 @@
-use crate::{attitude::Attitude, setup, telemetry::Category};
+use crate::{arming::ARMED, attitude::Attitude, setup, telemetry::Category};
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, watch::Watch};
 use embassy_time::{Duration, Ticker};
 use nalgebra::Vector3;
@@ -24,6 +24,12 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
             log::error!("Failed to read IMU");
             continue;
         };
+
+        if ARMED.try_take().is_some() {
+            log::info!("Calibration reset requested");
+            calibration_ticks = 0;
+            gyr_bias = Vector3::zeros();
+        }
 
         if calibration_ticks == 0 {
             log::info!("Calibration...");
