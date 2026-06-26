@@ -7,6 +7,18 @@ const CALIBRATION_TICKS: usize = 2000;
 
 pub const IMU_TICK: u64 = 1000;
 
+const ACC_OFFSET: Vector3<f32> = Vector3::new(
+    0.000000,  // X
+    -0.226035, // Y
+    0.152372,  // Z
+);
+
+const ACC_SCALE: Vector3<f32> = Vector3::new(
+    0.993833, // X
+    0.998219, // Y
+    0.990074, // Z
+);
+
 pub static ATT_DATA: Watch<CriticalSectionRawMutex, [f32; 3], 1> = Watch::new();
 
 #[embassy_executor::task]
@@ -57,14 +69,14 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
             };
 
             let corrected_gyr = Vector3::from(imudata.gyr) - gyr_bias;
-            let acc = Vector3::from(imudata.acc);
+            let corrected_acc = (Vector3::from(imudata.acc) - ACC_OFFSET).component_mul(&ACC_SCALE);
 
             #[rustfmt::skip]
             tele!(Category::Imu,
                 corrected_gyr[0], corrected_gyr[1], corrected_gyr[2],
-                acc[0], acc[1], acc[2]);
+                corrected_acc[0], corrected_acc[1], corrected_acc[2]);
 
-            if let Some(att) = att_transformer.update(&corrected_gyr, &acc, &mag) {
+            if let Some(att) = att_transformer.update(&corrected_gyr, &corrected_acc, &mag) {
                 att_sender.send(att)
             }
             total_ticks += 1;
