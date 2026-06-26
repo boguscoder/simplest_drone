@@ -76,6 +76,9 @@ impl MotorInput {
     }
 
     pub fn update(&mut self, rc_data: &RcData, att: &[f32; 3]) -> [u16; 4] {
+        self.pid_roll.set_kp(rc_data.gain());
+        self.pid_pitch.set_kp(rc_data.gain());
+
         let pid_roll = self.pid_roll.update(rc_data.roll() * ROLL_RATE, -att[0]) * ROLL_MIX_GAIN;
         let pid_pitch =
             self.pid_pitch.update(rc_data.pitch() * PITCH_RATE, att[1]) * PITCH_MIX_GAIN;
