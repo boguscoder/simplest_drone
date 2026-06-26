@@ -6,7 +6,7 @@ const ARM_HOLD_TICKS: u64 = 1000;
 /// Number of failsafe ticks before auto-disarming (0.5 seconds at 1kHz)
 const FAILSAFE_DISARM_TICKS: u64 = 500;
 
-pub static ARMED: Signal<CriticalSectionRawMutex, ()> = Signal::new();
+pub static DISARMED: Signal<CriticalSectionRawMutex, ()> = Signal::new();
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum ArmingState {
@@ -73,7 +73,6 @@ impl Arming {
                 log::info!("Armed (switch command)");
                 self.state = ArmingState::Armed;
                 self.arm_request_ticks = 0;
-                ARMED.signal(());
             }
         } else {
             self.arm_request_ticks = 0;
@@ -87,6 +86,7 @@ impl Arming {
                 log::info!("Disarmed (switch command)");
                 self.state = ArmingState::Disarmed;
                 self.disarm_request_ticks = 0;
+                DISARMED.signal(());
             }
         } else {
             self.disarm_request_ticks = 0;
