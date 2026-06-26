@@ -1,6 +1,6 @@
 use crate::{arming::DISARMED, attitude::Attitude, setup, telemetry::Category};
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, watch::Watch};
-use embassy_time::{Duration, Ticker};
+use embassy_time::{Duration, Instant, Ticker};
 use nalgebra::Vector3;
 
 const CALIBRATION_TICKS: usize = 2000;
@@ -30,12 +30,18 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
 
     let att_sender = ATT_DATA.sender();
     let mut att_transformer = Attitude::new();
+    let mut last_time = Instant::now();
 
     loop {
         let Ok(imudata) = imu.read_6dof().await else {
             log::error!("Failed to read IMU");
             continue;
         };
+
+        let now = Instant::now();
+        let elapsed = now.duration_since(last_time);
+        last_time = now;
+        let dt = elapsed.as_micros() as f32 / 1_000_000.0;
 
         if DISARMED.try_take().is_some() {
             log::info!("Calibration reset requested");
@@ -76,7 +82,7 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
                 corrected_gyr[0], corrected_gyr[1], corrected_gyr[2],
                 corrected_acc[0], corrected_acc[1], corrected_acc[2]);
 
-            if let Some(att) = att_transformer.update(&corrected_gyr, &corrected_acc, &mag) {
+            if let Some(att) = att_transformer.update(&corrected_gyr, &corrected_acc, &mag, dt) {
                 att_sender.send(att)
             }
             total_ticks += 1;

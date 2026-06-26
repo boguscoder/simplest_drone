@@ -9,7 +9,7 @@ telemetry = ["logging"]
 feather = []
 
 [dependencies]
-ahrs = { version = "0.7.0", default-features = false }
+ahrs = { version = "0.7.0", default-features = false, features = ["field_access"] }
 
 cortex-m-rt = "0.7.0"
 

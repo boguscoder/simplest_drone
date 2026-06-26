@@ -19,8 +19,10 @@ impl Attitude {
         gyr: &Vector3<f32>,
         acc: &Vector3<f32>,
         mag: &Vector3<f32>,
+        dt: f32,
     ) -> Option<[f32; 3]> {
-        let update_result = if mag != &Vector3::<f32>::zeros() {
+        *self.ahrs.sample_period_mut() = dt;
+        let update_result = if mag != &Vector3::<f32>::zeros() && dt != 0.0 {
             self.ahrs.update(gyr, acc, mag)
         } else {
             self.ahrs.update_imu(gyr, acc)
