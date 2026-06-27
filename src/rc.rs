@@ -37,7 +37,7 @@ impl RcData {
     }
 
     pub fn arm_switch(&self) -> f32 {
-        Self::normalize(self.0[6], RC_MIN, RC_MAX, 0.0, 1.0)
+        Self::normalize(self.0[5], RC_MIN, RC_MAX, 0.0, 1.0)
     }
 
     fn normalize(
