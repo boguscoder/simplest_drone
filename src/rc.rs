@@ -1,4 +1,4 @@
-use crate::setup;
+use crate::{setup, telemetry::Category};
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::watch::Watch;
 use embassy_time::{Duration, with_timeout};
@@ -65,11 +65,16 @@ pub async fn rc_task(mut uart: setup::UartReader) -> ! {
         match read_result {
             Ok(Ok(())) => {
                 if let Some(packet) = sbusparser.receive(&read_buffer) {
-                    log::trace!("rc {:?}", packet.channels);
-
                     match packet.failsafe {
                         false => {
                             let rc_data = RcData::from_channels(packet.channels);
+
+                            #[rustfmt::skip]
+                            tele!(
+                                Category::Rc,
+                                packet.channels[0], packet.channels[1], packet.channels[2],
+                                packet.channels[3], packet.channels[4], packet.channels[5]);
+
                             rc_sender.send(rc_data);
                             continue;
                         }
