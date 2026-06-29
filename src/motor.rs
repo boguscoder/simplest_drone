@@ -67,9 +67,9 @@ impl MotorInput {
         });
         let d_filter_cutoff_hz = Some(50.0);
         MotorInput {
-            pid_roll: Pid::new(0.8, 0.0, 0.05, cycle_time, pid_limits, d_filter_cutoff_hz),
-            pid_pitch: Pid::new(0.8, 0.0, 0.05, cycle_time, pid_limits, d_filter_cutoff_hz),
-            pid_yaw: Pid::new(0.8, 0.0, 0.05, cycle_time, pid_limits, d_filter_cutoff_hz),
+            pid_roll: Pid::new(0.4, 0.0, 0.05, cycle_time, pid_limits, d_filter_cutoff_hz),
+            pid_pitch: Pid::new(0.4, 0.0, 0.05, cycle_time, pid_limits, d_filter_cutoff_hz),
+            pid_yaw: Pid::new(0.4, 0.0, 0.05, cycle_time, pid_limits, d_filter_cutoff_hz),
         }
     }
 
