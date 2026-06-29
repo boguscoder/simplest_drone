@@ -8,13 +8,10 @@ const THROTTLE_MIN: f32 = 48.0;
 const THROTTLE_MAX: f32 = 2047.0;
 const SLOPE: f32 = THROTTLE_MAX - THROTTLE_MIN;
 
-const ROLL_RATE: f32 = 200.0 * core::f32::consts::PI / 180.0;
-const PITCH_RATE: f32 = ROLL_RATE;
 const YAW_RATE: f32 = 100.0 * core::f32::consts::PI / 180.0;
 
-const ROLL_MIX_GAIN: f32 = 0.5;
-const PITCH_MIX_GAIN: f32 = 0.5;
-const YAW_MIX_GAIN: f32 = 0.4;
+const MAX_LEAN_ANGLE: f32 = 45.0 * core::f32::consts::PI / 180.0;
+const ANGLE_P_GAIN: f32 = 4.5;
 
 pub fn pid_to_throttle(rc: f32) -> u16 {
     (THROTTLE_MIN + SLOPE * rc) as u16
@@ -80,15 +77,27 @@ impl MotorInput {
         self.pid_roll.set_kp(rc_data.gain());
         self.pid_pitch.set_kp(rc_data.gain());
 
-        let pid_roll = self
-            .pid_roll
-            .update(rc_data.roll() * ROLL_RATE, -imu.att[0])
-            * ROLL_MIX_GAIN;
-        let pid_pitch = self
-            .pid_pitch
-            .update(rc_data.pitch() * PITCH_RATE, imu.att[1])
-            * PITCH_MIX_GAIN;
-        let pid_yaw = self.pid_yaw.update(rc_data.yaw() * YAW_RATE, imu.yaw_rate) * YAW_MIX_GAIN;
+        let allow_i_term = rc_data.throttle() > 0.1;
+
+        if !allow_i_term {
+            self.pid_roll.reset_i();
+            self.pid_pitch.reset_i();
+            self.pid_yaw.reset_i();
+        }
+
+        let target_angle_roll = rc_data.roll() * MAX_LEAN_ANGLE;
+        let angle_error_roll = target_angle_roll - imu.att[0];
+        let target_rate_roll = angle_error_roll * ANGLE_P_GAIN;
+        let pid_roll = self.pid_roll.update(target_rate_roll, imu.gyro_rates[0]);
+
+        let target_angle_pitch = rc_data.pitch() * MAX_LEAN_ANGLE;
+        let angle_error_pitch = target_angle_pitch - imu.att[1];
+        let target_rate_pitch = angle_error_pitch * ANGLE_P_GAIN;
+        let pid_pitch = self.pid_pitch.update(target_rate_pitch, imu.gyro_rates[1]);
+
+        let pid_yaw = self
+            .pid_yaw
+            .update(rc_data.yaw() * YAW_RATE, imu.gyro_rates[2]);
 
         inputs_to_throttle(rc_data.throttle(), pid_roll, pid_pitch, pid_yaw)
     }

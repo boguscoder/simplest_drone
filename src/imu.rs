@@ -22,7 +22,7 @@ const ACC_SCALE: Vector3<f32> = Vector3::new(
 #[derive(Clone)]
 pub struct ImuData {
     pub att: [f32; 3],
-    pub yaw_rate: f32,
+    pub gyro_rates: Vector3<f32>,
 }
 
 pub static IMU_DATA: Watch<CriticalSectionRawMutex, ImuData, 1> = Watch::new();
@@ -91,7 +91,7 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
             if let Some(att) = att_transformer.update(&corrected_gyr, &corrected_acc, &mag, dt) {
                 imu_sender.send(ImuData {
                     att,
-                    yaw_rate: corrected_gyr[2],
+                    gyro_rates: corrected_gyr,
                 })
             }
             total_ticks += 1;

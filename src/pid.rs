@@ -57,6 +57,10 @@ impl Pid {
         self.kp = kp;
     }
 
+    pub fn reset_i(&mut self) {
+        self.prev_i = 0.0;
+    }
+
     pub fn update(&mut self, desired_rate: f32, measured_rate: f32) -> f32 {
         let error_rate = desired_rate - measured_rate;
         // P term
