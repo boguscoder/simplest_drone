@@ -37,19 +37,19 @@ async fn main(spawner: Spawner) {
     let mut motor = motor::MotorInput::new(1.0 / TICK_HZ as f32);
     let mut arming = Arming::new();
     let mut rc_reader = rc::RC_DATA.receiver().unwrap();
-    let mut att_reader = imu::ATT_DATA.receiver().unwrap();
+    let mut imu_reader = imu::IMU_DATA.receiver().unwrap();
 
     const ZERO_RC: RcData = RcData::from_channels([0; 16]);
 
     loop {
-        let att = att_reader.try_get();
+        let imu = imu_reader.try_get();
         let rc = rc_reader.try_get();
 
         let rc_ref = rc.as_ref().unwrap_or(&ZERO_RC);
         arming.update(rc_ref, rc.is_some());
 
-        let throttle = if let (Some(att), Some(rc)) = (att, rc) {
-            Some(motor.update(&rc, &att))
+        let throttle = if let (Some(imu), Some(rc)) = (imu, rc) {
+            Some(motor.update(&rc, &imu))
         } else {
             None
         };

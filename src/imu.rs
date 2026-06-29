@@ -19,7 +19,13 @@ const ACC_SCALE: Vector3<f32> = Vector3::new(
     0.990074, // Z
 );
 
-pub static ATT_DATA: Watch<CriticalSectionRawMutex, [f32; 3], 1> = Watch::new();
+#[derive(Clone)]
+pub struct ImuData {
+    pub att: [f32; 3],
+    pub yaw_rate: f32,
+}
+
+pub static IMU_DATA: Watch<CriticalSectionRawMutex, ImuData, 1> = Watch::new();
 
 #[embassy_executor::task]
 pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
@@ -28,7 +34,7 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
     let mut total_ticks: usize = 0;
     let mut gyr_bias: Vector3<f32> = Vector3::zeros();
 
-    let att_sender = ATT_DATA.sender();
+    let imu_sender = IMU_DATA.sender();
     let mut att_transformer = Attitude::new();
     let mut last_time = Instant::now();
 
@@ -83,7 +89,10 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
                 corrected_acc[0], corrected_acc[1], corrected_acc[2]);
 
             if let Some(att) = att_transformer.update(&corrected_gyr, &corrected_acc, &mag, dt) {
-                att_sender.send(att)
+                imu_sender.send(ImuData {
+                    att,
+                    yaw_rate: corrected_gyr[2],
+                })
             }
             total_ticks += 1;
         }
