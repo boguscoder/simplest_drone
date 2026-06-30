@@ -98,7 +98,7 @@ pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
     DshotPio::<4, _>::new(
         device.motors.pio,
         crate::device::Irqs,
-        //                // My Solder:)  // Canonical 'X' // Place
+        //                    // My Solder:)  // Canonical 'X' // Place
         device.motors.m1,     // M4           // M1            // Front Right
         device.motors.m2,     // M1           // M2            // Back Left
         device.motors.m3,     // M2           // M3            // Front Left

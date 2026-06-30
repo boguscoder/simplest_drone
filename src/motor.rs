@@ -11,10 +11,15 @@ const SLOPE: f32 = THROTTLE_MAX - THROTTLE_MIN;
 const YAW_RATE: f32 = 100.0 * core::f32::consts::PI / 180.0;
 
 const MAX_LEAN_ANGLE: f32 = 45.0 * core::f32::consts::PI / 180.0;
-const ANGLE_P_GAIN: f32 = 4.5;
+const ANGLE_P_GAIN: f32 = 1.5;
+
+const KP_MIN: f32 = 0.05;
+const KP_MAX: f32 = 0.3;
+const KP_MID: f32 = KP_MIN + (KP_MAX - KP_MIN) / 2.0;
 
 pub fn pid_to_throttle(rc: f32) -> u16 {
-    (THROTTLE_MIN + SLOPE * rc) as u16
+    let clamped_rc = rc.clamp(0.0, MAX_POWER);
+    (THROTTLE_MIN + SLOPE * clamped_rc) as u16
 }
 
 fn inputs_to_throttle(throttle: f32, pid_roll: f32, pid_pitch: f32, pid_yaw: f32) -> [u16; 4] {
@@ -36,10 +41,10 @@ fn inputs_to_throttle(throttle: f32, pid_roll: f32, pid_pitch: f32, pid_yaw: f32
     );
 
     let throttle_vals = [
-        pid_to_throttle(mixed_vals[0] * MAX_POWER),
-        pid_to_throttle(mixed_vals[1] * MAX_POWER),
-        pid_to_throttle(mixed_vals[2] * MAX_POWER),
-        pid_to_throttle(mixed_vals[3] * MAX_POWER),
+        pid_to_throttle(mixed_vals[0]),
+        pid_to_throttle(mixed_vals[1]),
+        pid_to_throttle(mixed_vals[2]),
+        pid_to_throttle(mixed_vals[3]),
     ];
 
     tele!(
@@ -66,16 +71,20 @@ impl MotorInput {
             max: 1.0,
         });
         let d_filter_cutoff_hz = Some(50.0);
+        let ki = 0.0;
+        let kd = 0.01;
+
         MotorInput {
-            pid_roll: Pid::new(0.4, 0.0, 0.05, cycle_time, pid_limits, d_filter_cutoff_hz),
-            pid_pitch: Pid::new(0.4, 0.0, 0.05, cycle_time, pid_limits, d_filter_cutoff_hz),
-            pid_yaw: Pid::new(0.4, 0.0, 0.05, cycle_time, pid_limits, d_filter_cutoff_hz),
+            pid_roll: Pid::new(KP_MID, ki, kd, cycle_time, pid_limits, d_filter_cutoff_hz),
+            pid_pitch: Pid::new(KP_MID, ki, kd, cycle_time, pid_limits, d_filter_cutoff_hz),
+            pid_yaw: Pid::new(KP_MID, ki, kd, cycle_time, pid_limits, d_filter_cutoff_hz),
         }
     }
 
     pub fn update(&mut self, rc_data: &RcData, imu: &ImuData) -> [u16; 4] {
-        self.pid_roll.set_kp(rc_data.gain());
-        self.pid_pitch.set_kp(rc_data.gain());
+        let kp = KP_MIN + (KP_MAX - KP_MIN) * rc_data.gain();
+        self.pid_roll.set_kp(kp);
+        self.pid_pitch.set_kp(kp);
 
         let allow_i_term = rc_data.throttle() > 0.1;
 
@@ -86,12 +95,12 @@ impl MotorInput {
         }
 
         let target_angle_roll = rc_data.roll() * MAX_LEAN_ANGLE;
-        let angle_error_roll = target_angle_roll - imu.att[0];
+        let angle_error_roll = imu.att[0] - target_angle_roll;
         let target_rate_roll = angle_error_roll * ANGLE_P_GAIN;
         let pid_roll = self.pid_roll.update(target_rate_roll, imu.gyro_rates[0]);
 
         let target_angle_pitch = rc_data.pitch() * MAX_LEAN_ANGLE;
-        let angle_error_pitch = target_angle_pitch - imu.att[1];
+        let angle_error_pitch = imu.att[1] - target_angle_pitch;
         let target_rate_pitch = angle_error_pitch * ANGLE_P_GAIN;
         let pid_pitch = self.pid_pitch.update(target_rate_pitch, imu.gyro_rates[1]);
 

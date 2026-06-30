@@ -1,6 +1,6 @@
 use crate::{arming::DISARMED, attitude::Attitude, setup, telemetry::Category};
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, watch::Watch};
-use embassy_time::{Duration, Instant, Ticker};
+use embassy_time::{Duration, Instant, Ticker, Timer};
 use nalgebra::Vector3;
 
 const CALIBRATION_TICKS: usize = 2000;
@@ -29,6 +29,8 @@ pub static IMU_DATA: Watch<CriticalSectionRawMutex, ImuData, 1> = Watch::new();
 
 #[embassy_executor::task]
 pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
+    Timer::after_secs(3).await;
+
     let mut loop_ticker = Ticker::every(Duration::from_hz(IMU_TICK));
     let mut calibration_ticks: usize = 0;
     let mut total_ticks: usize = 0;
@@ -53,6 +55,7 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
             log::info!("Calibration reset requested");
             calibration_ticks = 0;
             gyr_bias = Vector3::zeros();
+            imu_sender.clear();
         }
 
         if calibration_ticks == 0 {
