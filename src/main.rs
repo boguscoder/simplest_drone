@@ -8,7 +8,7 @@ mod arming;
 mod attitude;
 mod device;
 mod imu;
-mod log;
+mod logs;
 mod motor;
 mod pid;
 mod rc;
@@ -49,7 +49,7 @@ async fn main(spawner: Spawner) {
         arming.update(rc_ref, rc.is_some());
 
         let throttle = if let (Some(imu), Some(rc)) = (imu, rc) {
-            Some(motor.update(&rc, &imu))
+            Some(motor.update(&rc, &imu, arming.state() == ArmingState::Armed))
         } else {
             None
         };

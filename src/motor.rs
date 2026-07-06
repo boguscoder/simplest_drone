@@ -22,7 +22,13 @@ pub fn pid_to_throttle(rc: f32) -> u16 {
     (THROTTLE_MIN + SLOPE * clamped_rc) as u16
 }
 
-fn inputs_to_throttle(throttle: f32, pid_roll: f32, pid_pitch: f32, pid_yaw: f32) -> [u16; 4] {
+fn inputs_to_throttle(
+    throttle: f32,
+    pid_roll: f32,
+    pid_pitch: f32,
+    pid_yaw: f32,
+    is_armed: bool,
+) -> [u16; 4] {
     tele!(Category::Pid, throttle, pid_roll, pid_pitch, pid_yaw);
 
     let mixed_vals = [
@@ -40,12 +46,16 @@ fn inputs_to_throttle(throttle: f32, pid_roll: f32, pid_pitch: f32, pid_yaw: f32
         mixed_vals[3]
     );
 
-    let throttle_vals = [
-        pid_to_throttle(mixed_vals[0]),
-        pid_to_throttle(mixed_vals[1]),
-        pid_to_throttle(mixed_vals[2]),
-        pid_to_throttle(mixed_vals[3]),
-    ];
+    let throttle_vals = if is_armed {
+        [
+            pid_to_throttle(mixed_vals[0]),
+            pid_to_throttle(mixed_vals[1]),
+            pid_to_throttle(mixed_vals[2]),
+            pid_to_throttle(mixed_vals[3]),
+        ]
+    } else {
+        [0u16; 4]
+    };
 
     tele!(
         Category::Dshot,
@@ -81,7 +91,7 @@ impl MotorInput {
         }
     }
 
-    pub fn update(&mut self, rc_data: &RcData, imu: &ImuData) -> [u16; 4] {
+    pub fn update(&mut self, rc_data: &RcData, imu: &ImuData, is_armed: bool) -> [u16; 4] {
         let kp = KP_MIN + (KP_MAX - KP_MIN) * rc_data.gain();
         self.pid_roll.set_kp(kp);
         self.pid_pitch.set_kp(kp);
@@ -108,6 +118,6 @@ impl MotorInput {
             .pid_yaw
             .update(rc_data.yaw() * YAW_RATE, imu.gyro_rates[2]);
 
-        inputs_to_throttle(rc_data.throttle(), pid_roll, pid_pitch, pid_yaw)
+        inputs_to_throttle(rc_data.throttle(), pid_roll, pid_pitch, pid_yaw, is_armed)
     }
 }
