@@ -57,14 +57,15 @@ impl RcData {
 pub async fn rc_task(mut uart: setup::UartReader) -> ! {
     let rc_timeout = Duration::from_millis(100);
     let mut read_buffer = [0u8; 25];
-    let mut sbusparser = sbus_parser::receiver::Receiver::new();
+    let mut sbusparser = sbus::SBusPacketParser::new();
     let rc_sender = RC_DATA.sender();
 
     loop {
         let read_result = with_timeout(rc_timeout, uart.read(&mut read_buffer)).await;
         match read_result {
             Ok(Ok(())) => {
-                if let Some(packet) = sbusparser.receive(&read_buffer) {
+                sbusparser.push_bytes(&read_buffer);
+                if let Some(packet) = sbusparser.try_parse() {
                     match packet.failsafe {
                         false => {
                             let rc_data = RcData::from_channels(packet.channels);

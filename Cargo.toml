@@ -33,5 +33,5 @@ num_enum = { version = "0.7.3", default-features = false }
 panic-probe = "1.0.0"
 portable-atomic = { version = "1.11.1", features = ["critical-section"] }
 
-sbus-parser = "0.1.0"
+sbus = { git = "https://github.com/peterkrull/sbus" }
 static_cell = "2.0"

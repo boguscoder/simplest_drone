@@ -67,7 +67,7 @@ impl Pid {
         let p = error_rate * self.kp;
         // I term
         let mut i = self.prev_i + (error_rate * self.ki * self.cycle_time);
-        i = f32::max(f32::min(i, self.limit_i), -self.limit_i);
+        i = i.clamp(-self.limit_i, self.limit_i);
         // D term
         let mut d = -self.kd * (measured_rate - self.prev_measured) / self.cycle_time;
         if let Some(low_pass) = &mut self.d_lowpass_filter {
