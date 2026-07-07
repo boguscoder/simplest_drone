@@ -25,8 +25,6 @@ use panic_probe as _;
 use rc::RcData;
 
 const TICK_HZ: u64 = 1000;
-
-#[cfg(feature = "logging")]
 const LOG_DIVISIOR: u64 = 4;
 
 #[embassy_executor::main]
