@@ -32,11 +32,21 @@ pub static TELE_CHANNEL: TeleChannel = TeleChannel::new();
 
 #[macro_export]
 macro_rules! tele {
-    ($cat:expr, $($v:expr),+ $(,)?) => {
+    ($cat:path, $($v:expr),+ $(,)?) => {
+        $crate::tele_impl!($crate::LOG_DIVISIOR, $cat, $($v),+)
+    };
+    ($div:expr, $cat:path, $($v:expr),+ $(,)?) => {
+        $crate::tele_impl!($div, $cat, $($v),+)
+    };
+}
+
+#[macro_export]
+macro_rules! tele_impl {
+    ($div:expr, $cat:path, $($v:expr),+ $(,)?) => {
         #[cfg(feature = "telemetry")]
         {
             static __CALL_COUNTER: portable_atomic::AtomicUsize = portable_atomic::AtomicUsize::new(0);
-            if __CALL_COUNTER.fetch_add(1, portable_atomic::Ordering::Relaxed) % $crate::LOG_DIVISIOR as usize == 0 {
+            if __CALL_COUNTER.fetch_add(1, portable_atomic::Ordering::Relaxed) % $div as usize == 0 {
                 let current = $crate::telemetry::Category::try_from(
                     $crate::telemetry::TELE_CATEGORY.load(portable_atomic::Ordering::Relaxed)
                 ).unwrap_or($crate::telemetry::Category::None);
@@ -55,8 +65,9 @@ macro_rules! tele {
         }
         #[cfg(not(feature = "telemetry"))]
         {
+            let _ = $div;
             let _ = $cat;
             $(let _ = $v;)+
         }
-    }
+    };
 }

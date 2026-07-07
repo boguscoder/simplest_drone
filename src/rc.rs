@@ -71,7 +71,7 @@ pub async fn rc_task(mut uart: setup::UartReader) -> ! {
 
                             #[rustfmt::skip]
                             tele!(
-                                Category::Rc,
+                                1, Category::Rc,
                                 packet.channels[0], packet.channels[1], packet.channels[2],
                                 packet.channels[3], packet.channels[4], packet.channels[5]);
 
