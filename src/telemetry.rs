@@ -16,7 +16,7 @@ pub enum Category {
 pub static TELE_CATEGORY: portable_atomic::AtomicU8 = portable_atomic::AtomicU8::new(0);
 
 #[cfg(feature = "telemetry")]
-pub const TELE_MAX_VALUES: usize = 6;
+pub const TELE_MAX_VALUES: usize = 8;
 #[cfg(feature = "telemetry")]
 pub const TELE_FRAME_SIZE: usize = 2 + TELE_MAX_VALUES * 4;
 

@@ -11,7 +11,7 @@ struct LowPassFilterState {
 
 pub struct Pid {
     pub kp: f32,
-    ki: f32,
+    pub ki: f32,
     kd: f32,
     prev_error: f32,
     prev_measured: f32,

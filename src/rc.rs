@@ -32,12 +32,16 @@ impl RcData {
         Self::normalize(self.0[3], RC_MIN, RC_MAX, -1.0, 1.0)
     }
 
-    pub fn gain(&self) -> f32 {
+    pub fn kp_gain(&self) -> f32 {
         Self::normalize(self.0[4], RC_MIN, RC_MAX, 0.0, 1.0)
     }
 
-    pub fn arm_switch(&self) -> f32 {
+    pub fn ki_gain(&self) -> f32 {
         Self::normalize(self.0[5], RC_MIN, RC_MAX, 0.0, 1.0)
+    }
+
+    pub fn arm_switch(&self) -> f32 {
+        Self::normalize(self.0[6], RC_MIN, RC_MAX, 0.0, 1.0)
     }
 
     fn normalize(
@@ -73,8 +77,9 @@ pub async fn rc_task(mut uart: setup::UartReader) -> ! {
                             #[rustfmt::skip]
                             tele!(
                                 1, Category::Rc,
-                                packet.channels[0], packet.channels[1], packet.channels[2],
-                                packet.channels[3], packet.channels[4], packet.channels[5]);
+                                rc_data.0[0], rc_data.0[1], rc_data.0[2],
+                                rc_data.0[3], rc_data.0[4], rc_data.0[5], 
+                                rc_data.0[6]);
 
                             rc_sender.send(rc_data);
                             continue;

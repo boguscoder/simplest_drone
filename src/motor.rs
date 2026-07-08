@@ -17,6 +17,11 @@ const KP_MIN: f32 = 0.05;
 const KP_MAX: f32 = 0.3;
 const KP_MID: f32 = KP_MIN + (KP_MAX - KP_MIN) / 2.0;
 
+const KI_MIN: f32 = 0.0;
+const KI_MAX: f32 = 0.05;
+
+const KD_MIN: f32 = 0.0;
+
 pub fn pid_to_throttle(rc: f32) -> u16 {
     let clamped_rc = rc.clamp(0.0, MAX_POWER);
     (THROTTLE_MIN + SLOPE * clamped_rc) as u16
@@ -79,20 +84,43 @@ impl MotorInput {
             max: 1.0,
         });
         let d_filter_cutoff_hz = Some(50.0);
-        let ki = 0.0;
-        let kd = 0.0;
 
         MotorInput {
-            pid_roll: Pid::new(KP_MID, ki, kd, cycle_time, pid_limits, d_filter_cutoff_hz),
-            pid_pitch: Pid::new(KP_MID, ki, kd, cycle_time, pid_limits, d_filter_cutoff_hz),
-            pid_yaw: Pid::new(0.08, ki, kd, cycle_time, pid_limits, d_filter_cutoff_hz),
+            pid_roll: Pid::new(
+                KP_MID,
+                KI_MIN,
+                KD_MIN,
+                cycle_time,
+                pid_limits,
+                d_filter_cutoff_hz,
+            ),
+            pid_pitch: Pid::new(
+                KP_MID,
+                KI_MIN,
+                KD_MIN,
+                cycle_time,
+                pid_limits,
+                d_filter_cutoff_hz,
+            ),
+            pid_yaw: Pid::new(
+                0.08,
+                KI_MIN,
+                KD_MIN,
+                cycle_time,
+                pid_limits,
+                d_filter_cutoff_hz,
+            ),
         }
     }
 
     pub fn update(&mut self, rc_data: &RcData, imu: &ImuData, is_armed: bool) -> [u16; 4] {
-        let kp = KP_MIN + (KP_MAX - KP_MIN) * rc_data.gain();
+        let kp = KP_MIN + (KP_MAX - KP_MIN) * rc_data.kp_gain();
         self.pid_roll.kp = kp;
         self.pid_pitch.kp = kp;
+
+        let ki = KI_MIN + (KI_MAX - KI_MIN) * rc_data.ki_gain();
+        self.pid_roll.ki = ki;
+        self.pid_pitch.ki = ki;
 
         let allow_i_term = rc_data.throttle() > 0.1;
 
