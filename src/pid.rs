@@ -10,13 +10,13 @@ struct LowPassFilterState {
 }
 
 pub struct Pid {
-    kp: f32,
+    pub kp: f32,
     ki: f32,
     kd: f32,
     prev_error: f32,
     prev_measured: f32,
     cycle_time: f32,
-    prev_i: f32,
+    pub prev_i: f32,
     limit_i: f32,
     limit_pid: Option<Limits>,
     d_lowpass_filter: Option<LowPassFilterState>,
@@ -51,14 +51,6 @@ impl Pid {
             limit_pid,
             d_lowpass_filter,
         }
-    }
-
-    pub fn set_kp(&mut self, kp: f32) {
-        self.kp = kp;
-    }
-
-    pub fn reset_i(&mut self) {
-        self.prev_i = 0.0;
     }
 
     pub fn update(&mut self, desired_rate: f32, measured_rate: f32) -> f32 {

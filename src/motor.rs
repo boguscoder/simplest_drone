@@ -29,13 +29,11 @@ fn inputs_to_throttle(
     pid_yaw: f32,
     is_armed: bool,
 ) -> [u16; 4] {
-    tele!(Category::Pid, throttle, pid_roll, pid_pitch, pid_yaw);
-
     let mixed_vals = [
-        throttle - pid_pitch + pid_roll - pid_yaw,
-        throttle + pid_pitch - pid_roll - pid_yaw,
-        throttle - pid_pitch - pid_roll + pid_yaw,
-        throttle + pid_pitch + pid_roll + pid_yaw,
+        throttle - pid_pitch + pid_roll + pid_yaw,
+        throttle + pid_pitch - pid_roll + pid_yaw,
+        throttle - pid_pitch - pid_roll - pid_yaw,
+        throttle + pid_pitch + pid_roll - pid_yaw,
     ];
 
     tele!(
@@ -82,26 +80,26 @@ impl MotorInput {
         });
         let d_filter_cutoff_hz = Some(50.0);
         let ki = 0.0;
-        let kd = 0.01;
+        let kd = 0.0;
 
         MotorInput {
             pid_roll: Pid::new(KP_MID, ki, kd, cycle_time, pid_limits, d_filter_cutoff_hz),
             pid_pitch: Pid::new(KP_MID, ki, kd, cycle_time, pid_limits, d_filter_cutoff_hz),
-            pid_yaw: Pid::new(KP_MID, ki, kd, cycle_time, pid_limits, d_filter_cutoff_hz),
+            pid_yaw: Pid::new(0.08, ki, kd, cycle_time, pid_limits, d_filter_cutoff_hz),
         }
     }
 
     pub fn update(&mut self, rc_data: &RcData, imu: &ImuData, is_armed: bool) -> [u16; 4] {
         let kp = KP_MIN + (KP_MAX - KP_MIN) * rc_data.gain();
-        self.pid_roll.set_kp(kp);
-        self.pid_pitch.set_kp(kp);
+        self.pid_roll.kp = kp;
+        self.pid_pitch.kp = kp;
 
         let allow_i_term = rc_data.throttle() > 0.1;
 
         if !allow_i_term {
-            self.pid_roll.reset_i();
-            self.pid_pitch.reset_i();
-            self.pid_yaw.reset_i();
+            self.pid_roll.prev_i = 0.0;
+            self.pid_pitch.prev_i = 0.0;
+            self.pid_yaw.prev_i = 0.0;
         }
 
         let target_angle_roll = rc_data.roll() * MAX_LEAN_ANGLE;
@@ -116,7 +114,17 @@ impl MotorInput {
 
         let pid_yaw = self
             .pid_yaw
-            .update(rc_data.yaw() * YAW_RATE, imu.gyro_rates[2]);
+            .update(-rc_data.yaw() * YAW_RATE, imu.gyro_rates[2]);
+
+        tele!(
+            Category::Pid,
+            pid_roll,
+            pid_pitch,
+            pid_yaw,
+            self.pid_roll.prev_i,
+            self.pid_pitch.prev_i,
+            self.pid_yaw.prev_i
+        );
 
         inputs_to_throttle(rc_data.throttle(), pid_roll, pid_pitch, pid_yaw, is_armed)
     }
