@@ -76,7 +76,7 @@ pub async fn usb_setup(p: embassy_rp::Peri<'static, embassy_rp::peripherals::USB
     config.manufacturer = Some("Embassy");
     config.product = Some("Drone Console");
     config.serial_number = Some("0xBABECAFE");
-    config.max_power = 100;
+    config.max_power = 250;
     config.max_packet_size_0 = 64;
 
     let mut builder = {
