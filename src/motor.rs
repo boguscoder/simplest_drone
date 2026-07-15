@@ -80,8 +80,8 @@ pub struct MotorInput {
 impl MotorInput {
     pub fn new(cycle_time: f32) -> MotorInput {
         let pid_limits = Some(pid::Limits {
-            min: -1.0,
-            max: 1.0,
+            min: -0.2,
+            max: 0.2,
         });
         let d_filter_cutoff_hz = Some(50.0);
 
@@ -133,7 +133,7 @@ impl MotorInput {
         let target_angle_roll = rc_data.roll() * MAX_LEAN_ANGLE;
         let angle_error_roll = target_angle_roll - imu.att[0];
         let target_rate_roll = angle_error_roll * ANGLE_P_GAIN;
-        let pid_roll = self.pid_roll.update(target_rate_roll, -imu.gyro_rates[0]);
+        let pid_roll = self.pid_roll.update(target_rate_roll, imu.gyro_rates[0]);
 
         let target_angle_pitch = rc_data.pitch() * MAX_LEAN_ANGLE;
         let angle_error_pitch = target_angle_pitch - imu.att[1];

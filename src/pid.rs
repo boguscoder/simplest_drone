@@ -47,7 +47,7 @@ impl Pid {
             prev_measured: 0.0,
             cycle_time,
             prev_i: 0.0,
-            limit_i: 10.0,
+            limit_i: 0.5,
             limit_pid,
             d_lowpass_filter,
         }

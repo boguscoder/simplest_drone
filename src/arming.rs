@@ -3,8 +3,8 @@ use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal}
 
 /// Minimum number of ticks (1ms each) to hold arming stick position
 const ARM_HOLD_TICKS: u64 = 1000;
-/// Number of failsafe ticks before auto-disarming (0.5 seconds at 1kHz)
-const FAILSAFE_DISARM_TICKS: u64 = 500;
+/// Number of failsafe ticks before auto-disarming (0.1 seconds at 1kHz)
+const FAILSAFE_DISARM_TICKS: u64 = 100;
 
 pub static DISARMED: Signal<CriticalSectionRawMutex, ()> = Signal::new();
 
