@@ -11,14 +11,14 @@ const SLOPE: f32 = THROTTLE_MAX - THROTTLE_MIN;
 const YAW_RATE: f32 = 100.0 * core::f32::consts::PI / 180.0;
 
 const MAX_LEAN_ANGLE: f32 = 45.0 * core::f32::consts::PI / 180.0;
-const ANGLE_P_GAIN: f32 = 1.5;
+const ANGLE_P_GAIN: f32 = 4.0;
 
 const KP_MIN: f32 = 0.05;
-const KP_MAX: f32 = 0.3;
+const KP_MAX: f32 = 0.25;
 const KP_MID: f32 = KP_MIN + (KP_MAX - KP_MIN) / 2.0;
 
 const KI_MIN: f32 = 0.0;
-const KI_MAX: f32 = 0.05;
+const KI_MAX: f32 = 0.15;
 
 const KD_MIN: f32 = 0.0;
 
@@ -35,10 +35,10 @@ fn inputs_to_throttle(
     is_armed: bool,
 ) -> [u16; 4] {
     let mixed_vals = [
-        throttle - pid_pitch + pid_roll + pid_yaw,
-        throttle + pid_pitch - pid_roll + pid_yaw,
-        throttle - pid_pitch - pid_roll - pid_yaw,
-        throttle + pid_pitch + pid_roll - pid_yaw,
+        throttle - pid_pitch - pid_roll + pid_yaw,
+        throttle + pid_pitch + pid_roll + pid_yaw,
+        throttle - pid_pitch + pid_roll - pid_yaw,
+        throttle + pid_pitch - pid_roll - pid_yaw,
     ];
 
     tele!(
@@ -130,10 +130,10 @@ impl MotorInput {
             self.pid_yaw.prev_i = 0.0;
         }
 
-        let target_angle_roll = -rc_data.roll() * MAX_LEAN_ANGLE;
-        let angle_error_roll = imu.att[0] - target_angle_roll;
+        let target_angle_roll = rc_data.roll() * MAX_LEAN_ANGLE;
+        let angle_error_roll = target_angle_roll - imu.att[0];
         let target_rate_roll = angle_error_roll * ANGLE_P_GAIN;
-        let pid_roll = self.pid_roll.update(target_rate_roll, imu.gyro_rates[0]);
+        let pid_roll = self.pid_roll.update(target_rate_roll, -imu.gyro_rates[0]);
 
         let target_angle_pitch = rc_data.pitch() * MAX_LEAN_ANGLE;
         let angle_error_pitch = target_angle_pitch - imu.att[1];
