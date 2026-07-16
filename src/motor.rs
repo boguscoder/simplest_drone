@@ -3,7 +3,7 @@ use crate::pid::{self, Pid};
 use crate::rc::RcData;
 use crate::telemetry::Category;
 
-const MAX_POWER: f32 = 0.6;
+const MAX_POWER: f32 = 0.4;
 const THROTTLE_MIN: f32 = 48.0;
 const THROTTLE_MAX: f32 = 2047.0;
 const SLOPE: f32 = THROTTLE_MAX - THROTTLE_MIN;
