@@ -130,7 +130,7 @@ impl MotorInput {
             self.pid_yaw.prev_i = 0.0;
         }
 
-        let target_angle_roll = rc_data.roll() * MAX_LEAN_ANGLE;
+        let target_angle_roll = -rc_data.roll() * MAX_LEAN_ANGLE;
         let angle_error_roll = target_angle_roll - imu.att[0];
         let target_rate_roll = angle_error_roll * ANGLE_P_GAIN;
         let pid_roll = self.pid_roll.update(target_rate_roll, imu.gyro_rates[0]);
