@@ -1,7 +1,8 @@
 #![cfg(feature = "logging")]
 
 use crate::telemetry::Category;
-use embassy_futures::join::join;
+use core::convert::TryFrom;
+use embassy_futures::join::{join, join3};
 use embassy_rp::bind_interrupts;
 use embassy_rp::peripherals::USB;
 use embassy_rp::usb::{Driver, InterruptHandler};
@@ -36,19 +37,25 @@ async fn usb_log_task(class: CdcAcmClass<'static, UsbDriver>) {
     embassy_usb_logger::with_class!(1024, log::LevelFilter::Info, class).await
 }
 
-#[cfg(feature = "telemetry")]
 async fn usb_telemetry_task(mut sender: Sender<'static, UsbDriver>) {
-    let receiver = crate::telemetry::TELE_CHANNEL.receiver();
-    loop {
-        sender.wait_connection().await;
+    #[cfg(feature = "telemetry")]
+    {
+        let receiver = crate::telemetry::TELE_CHANNEL.receiver();
         loop {
-            let frame = receiver.receive().await;
-            let len = frame[1] as usize;
-            let frame_len = 2 + len * 4;
-            if sender.write_packet(&frame[..frame_len]).await.is_err() {
-                break;
+            sender.wait_connection().await;
+            loop {
+                let frame = receiver.receive().await;
+                let len = frame[1] as usize;
+                let frame_len = 2 + len * 4;
+                if sender.write_packet(&frame[..frame_len]).await.is_err() {
+                    break;
+                }
             }
         }
+    }
+    #[cfg(not(feature = "telemetry"))]
+    loop {
+        embassy_time::Timer::after_secs(3600).await;
     }
 }
 
@@ -109,22 +116,6 @@ pub async fn usb_setup(p: embassy_rp::Peri<'static, embassy_rp::peripherals::USB
     let usb = builder.build();
     let (app_sender, app_receiver) = app_class.split();
 
-    join(
-        usb_run_task(usb),
-        join(
-            usb_log_task(logger_class),
-            join(
-                usb_read_task(app_receiver),
-                #[cfg(feature = "telemetry")]
-                usb_telemetry_task(app_sender),
-                #[cfg(not(feature = "telemetry"))]
-                async {
-                    loop {
-                        embassy_time::Timer::after_secs(3600).await;
-                    }
-                },
-            ),
-        ),
-    )
-    .await;
+    let app_task = join(usb_read_task(app_receiver), usb_telemetry_task(app_sender));
+    join3(usb_run_task(usb), usb_log_task(logger_class), app_task).await;
 }
