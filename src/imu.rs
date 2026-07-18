@@ -8,8 +8,8 @@ const CALIBRATION_TICKS: usize = 2000;
 pub const IMU_TICK: u64 = 1000;
 
 const ACC_OFFSET: Vector3<f32> = Vector3::new(
-    0.000000,  // X
-    -0.226035, // Y
+    -0.100000, // X
+    -0.246035, // Y
     0.152372,  // Z
 );
 
