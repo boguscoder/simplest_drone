@@ -11,14 +11,13 @@ const SLOPE: f32 = THROTTLE_MAX - THROTTLE_MIN;
 const YAW_RATE: f32 = 100.0 * core::f32::consts::PI / 180.0;
 
 const MAX_LEAN_ANGLE: f32 = 45.0 * core::f32::consts::PI / 180.0;
-const ANGLE_P_GAIN: f32 = 4.0;
+const ANGLE_P_GAIN: f32 = 5.0;
 
-const KP_MIN: f32 = 0.05;
-const KP_MAX: f32 = 0.25;
-const KP_MID: f32 = KP_MIN + (KP_MAX - KP_MIN) / 2.0;
+pub const KP_MIN: f32 = 0.05;
+pub const KP_MAX: f32 = 0.25;
 
-const KI_MIN: f32 = 0.0;
-const KI_MAX: f32 = 0.15;
+pub const KI_MIN: f32 = 0.0;
+pub const KI_MAX: f32 = 0.15;
 
 const KD_MIN: f32 = 0.0;
 
@@ -87,7 +86,7 @@ impl MotorInput {
 
         MotorInput {
             pid_roll: Pid::new(
-                KP_MID,
+                KP_MIN,
                 KI_MIN,
                 KD_MIN,
                 cycle_time,
@@ -95,7 +94,7 @@ impl MotorInput {
                 d_filter_cutoff_hz,
             ),
             pid_pitch: Pid::new(
-                KP_MID,
+                KP_MIN,
                 KI_MIN,
                 KD_MIN,
                 cycle_time,
@@ -114,11 +113,11 @@ impl MotorInput {
     }
 
     pub fn update(&mut self, rc_data: &RcData, imu: &ImuData, is_armed: bool) -> [u16; 4] {
-        let kp = KP_MIN + (KP_MAX - KP_MIN) * rc_data.kp_gain();
+        let kp = rc_data.kp_gain();
         self.pid_roll.kp = kp;
         self.pid_pitch.kp = kp;
 
-        let ki = KI_MIN + (KI_MAX - KI_MIN) * rc_data.ki_gain();
+        let ki = rc_data.ki_gain();
         self.pid_roll.ki = ki;
         self.pid_pitch.ki = ki;
 

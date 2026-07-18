@@ -1,4 +1,4 @@
-use crate::{setup, telemetry::Category};
+use crate::{setup, telemetry::Category, motor};
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::watch::Watch;
 use embassy_time::{Duration, with_timeout};
@@ -33,11 +33,11 @@ impl RcData {
     }
 
     pub fn kp_gain(&self) -> f32 {
-        Self::normalize(self.0[4], RC_MIN, RC_MAX, 0.0, 1.0)
+        Self::normalize(self.0[4], RC_MIN, RC_MAX, motor::KP_MIN, motor::KP_MAX)
     }
 
     pub fn ki_gain(&self) -> f32 {
-        Self::normalize(self.0[5], RC_MIN, RC_MAX, 0.0, 1.0)
+        Self::normalize(self.0[5], RC_MIN, RC_MAX, motor::KI_MIN, motor::KI_MAX)
     }
 
     pub fn arm_switch(&self) -> f32 {
