@@ -8,7 +8,7 @@ const THROTTLE_MIN: f32 = 48.0;
 const THROTTLE_MAX: f32 = 2047.0;
 const SLOPE: f32 = THROTTLE_MAX - THROTTLE_MIN;
 
-const YAW_RATE: f32 = 100.0 * core::f32::consts::PI / 180.0;
+const YAW_RATE: f32 = 200.0 * core::f32::consts::PI / 180.0;
 
 const MAX_LEAN_ANGLE: f32 = 45.0 * core::f32::consts::PI / 180.0;
 const ANGLE_P_GAIN: f32 = 5.0;
