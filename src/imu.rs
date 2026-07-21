@@ -1,23 +1,8 @@
+use crate::consts::{ACC_OFFSET, ACC_SCALE, CALIBRATION_TICKS, TICK_HZ};
 use crate::{arming::DISARMED, attitude::Attitude, setup, telemetry::Category};
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, watch::Watch};
 use embassy_time::{Duration, Instant, Ticker, Timer};
 use nalgebra::Vector3;
-
-const CALIBRATION_TICKS: usize = 2000;
-
-pub const IMU_TICK: u64 = 1000;
-
-const ACC_OFFSET: Vector3<f32> = Vector3::new(
-    -0.100000, // X
-    -0.246035, // Y
-    0.152372,  // Z
-);
-
-const ACC_SCALE: Vector3<f32> = Vector3::new(
-    0.993833, // X
-    0.998219, // Y
-    0.990074, // Z
-);
 
 #[derive(Clone)]
 pub struct ImuData {
@@ -31,7 +16,7 @@ pub static IMU_DATA: Watch<CriticalSectionRawMutex, ImuData, 1> = Watch::new();
 pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
     Timer::after_secs(3).await;
 
-    let mut loop_ticker = Ticker::every(Duration::from_hz(IMU_TICK));
+    let mut loop_ticker = Ticker::every(Duration::from_hz(TICK_HZ));
     let mut calibration_ticks: usize = 0;
     let mut total_ticks: usize = 0;
     let mut gyr_bias: Vector3<f32> = Vector3::zeros();

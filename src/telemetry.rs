@@ -16,14 +16,9 @@ pub enum Category {
 pub static TELE_CATEGORY: portable_atomic::AtomicU8 = portable_atomic::AtomicU8::new(0);
 
 #[cfg(feature = "telemetry")]
-pub const TELE_MAX_VALUES: usize = 8;
-#[cfg(feature = "telemetry")]
-pub const TELE_FRAME_SIZE: usize = 2 + TELE_MAX_VALUES * 4;
-
-#[cfg(feature = "telemetry")]
 pub type TeleChannel = embassy_sync::channel::Channel<
     embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex,
-    [u8; TELE_FRAME_SIZE],
+    [u8; crate::consts::TELE_FRAME_SIZE],
     32,
 >;
 
@@ -33,7 +28,7 @@ pub static TELE_CHANNEL: TeleChannel = TeleChannel::new();
 #[macro_export]
 macro_rules! tele {
     ($cat:path, $($v:expr),+ $(,)?) => {
-        $crate::tele_impl!($crate::LOG_DIVISIOR, $cat, $($v),+)
+        $crate::tele_impl!($crate::consts::LOG_DIVISOR, $cat, $($v),+)
     };
     ($div:expr, $cat:path, $($v:expr),+ $(,)?) => {
         $crate::tele_impl!($div, $cat, $($v),+)
@@ -52,8 +47,8 @@ macro_rules! tele_impl {
                 ).unwrap_or($crate::telemetry::Category::None);
                 if current == $cat {
                     let values = [$($v as f32),+];
-                    let n = values.len().min($crate::telemetry::TELE_MAX_VALUES);
-                    let mut frame = [0u8; $crate::telemetry::TELE_FRAME_SIZE];
+                    let n = values.len().min($crate::consts::TELE_MAX_VALUES);
+                    let mut frame = [0u8; $crate::consts::TELE_FRAME_SIZE];
                     frame[0] = 0xAA;
                     frame[1] = n as u8;
                     for (i, v) in values.iter().take(n).enumerate() {

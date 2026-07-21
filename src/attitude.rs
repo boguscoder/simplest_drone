@@ -1,4 +1,4 @@
-use crate::imu::IMU_TICK;
+use crate::consts::{AHRS_BETA, TICK_HZ};
 use crate::telemetry::Category;
 use ahrs::{Ahrs, Madgwick};
 use nalgebra::Vector3;
@@ -10,7 +10,7 @@ pub struct Attitude {
 impl Attitude {
     pub fn new() -> Attitude {
         Attitude {
-            ahrs: Madgwick::new(1.0 / IMU_TICK as f32, 0.05),
+            ahrs: Madgwick::new(1.0 / TICK_HZ as f32, AHRS_BETA),
         }
     }
 

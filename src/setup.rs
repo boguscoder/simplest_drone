@@ -1,3 +1,4 @@
+use crate::consts::{I2C_FREQ, IMU_I2C_ADDR, SBUS_BAUD, SYSTEM_FREQ};
 use crate::{imu, rc};
 use embassy_dshot::{DshotPioTrait, DshotSpeed, rp::DshotPio};
 use embassy_executor::{Executor, Spawner};
@@ -24,7 +25,7 @@ pub type ImuReader = Icm20948<
 pub type UartReader = UartRx<'static, uart::Async>;
 
 pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
-    let mut clock_cfg = ClockConfig::system_freq(200_000_000).unwrap();
+    let mut clock_cfg = ClockConfig::system_freq(SYSTEM_FREQ).unwrap();
     clock_cfg.core_voltage = CoreVoltage::V1_15;
     let mut config = Config::default();
     config.clocks = clock_cfg;
@@ -38,7 +39,7 @@ pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
     log::info!("// RC via SBUS setup //");
 
     let mut sbus_uart_config = uart::Config::default();
-    sbus_uart_config.baudrate = 100_000;
+    sbus_uart_config.baudrate = SBUS_BAUD;
     sbus_uart_config.data_bits = DataBits::DataBits8;
     sbus_uart_config.stop_bits = StopBits::STOP2;
     sbus_uart_config.parity = Parity::ParityEven;
@@ -57,7 +58,7 @@ pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
     log::info!("// IMU via UART setup //");
 
     let mut i2c_config = i2c::Config::default();
-    i2c_config.frequency = 400_000;
+    i2c_config.frequency = I2C_FREQ;
 
     let i2c = i2c::I2c::new_async(
         device.imu.i2c,
@@ -74,7 +75,7 @@ pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
         .acc_range(AccRange::Gs8)
         .acc_unit(AccUnit::Mpss)
         .acc_dlp(AccDlp::Hz50)
-        .set_address(0x69)
+        .set_address(IMU_I2C_ADDR)
         .initialize_9dof()
         .await;
 

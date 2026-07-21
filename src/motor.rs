@@ -1,25 +1,12 @@
+use crate::consts::{
+    ANGLE_P_GAIN, D_FILTER_CUTOFF_HZ, I_TERM_THROTTLE_LIMIT, KD_MIN, KI_MIN, KP_MIN,
+    MAX_LEAN_ANGLE, MAX_POWER, PID_LIMIT_MAX, PID_LIMIT_MIN, PID_YAW_KP, SLOPE, THROTTLE_MIN,
+    YAW_RATE,
+};
 use crate::imu::ImuData;
 use crate::pid::{self, Pid};
 use crate::rc::RcData;
 use crate::telemetry::Category;
-
-const MAX_POWER: f32 = 0.4;
-const THROTTLE_MIN: f32 = 48.0;
-const THROTTLE_MAX: f32 = 2047.0;
-const SLOPE: f32 = THROTTLE_MAX - THROTTLE_MIN;
-
-const YAW_RATE: f32 = 200.0 * core::f32::consts::PI / 180.0;
-
-const MAX_LEAN_ANGLE: f32 = 45.0 * core::f32::consts::PI / 180.0;
-const ANGLE_P_GAIN: f32 = 5.0;
-
-pub const KP_MIN: f32 = 0.05;
-pub const KP_MAX: f32 = 0.25;
-
-pub const KI_MIN: f32 = 0.0;
-pub const KI_MAX: f32 = 0.15;
-
-const KD_MIN: f32 = 0.0;
 
 pub fn pid_to_throttle(rc: f32) -> u16 {
     let clamped_rc = rc.clamp(0.0, MAX_POWER);
@@ -79,10 +66,10 @@ pub struct MotorInput {
 impl MotorInput {
     pub fn new(cycle_time: f32) -> MotorInput {
         let pid_limits = Some(pid::Limits {
-            min: -0.2,
-            max: 0.2,
+            min: PID_LIMIT_MIN,
+            max: PID_LIMIT_MAX,
         });
-        let d_filter_cutoff_hz = Some(50.0);
+        let d_filter_cutoff_hz = Some(D_FILTER_CUTOFF_HZ);
 
         MotorInput {
             pid_roll: Pid::new(
@@ -102,7 +89,7 @@ impl MotorInput {
                 d_filter_cutoff_hz,
             ),
             pid_yaw: Pid::new(
-                0.08,
+                PID_YAW_KP,
                 KI_MIN,
                 KD_MIN,
                 cycle_time,
@@ -121,7 +108,7 @@ impl MotorInput {
         self.pid_roll.ki = ki;
         self.pid_pitch.ki = ki;
 
-        let allow_i_term = rc_data.throttle() > 0.1;
+        let allow_i_term = rc_data.throttle() > I_TERM_THROTTLE_LIMIT;
 
         if !allow_i_term {
             self.pid_roll.prev_i = 0.0;

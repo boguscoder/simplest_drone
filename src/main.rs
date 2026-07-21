@@ -6,6 +6,7 @@ mod telemetry;
 
 mod arming;
 mod attitude;
+mod consts;
 mod device;
 mod imu;
 mod logs;
@@ -18,14 +19,12 @@ mod setup;
 mod usb;
 
 use arming::{Arming, ArmingState};
+use consts::TICK_HZ;
 use embassy_dshot::{Command, DshotPioTrait};
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Ticker};
 use panic_probe as _;
 use rc::RcData;
-
-const TICK_HZ: u64 = 1000;
-const LOG_DIVISIOR: u64 = 4;
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {

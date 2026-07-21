@@ -1,5 +1,6 @@
 #![cfg(feature = "logging")]
 
+use crate::consts::{USB_PID, USB_VID};
 use crate::telemetry::Category;
 use core::convert::TryFrom;
 use embassy_futures::join::{join, join3};
@@ -79,7 +80,7 @@ async fn usb_run_task(mut dev: UsbDevice) {
 #[embassy_executor::task]
 pub async fn usb_setup(p: embassy_rp::Peri<'static, embassy_rp::peripherals::USB>) {
     let driver = Driver::new(p, Irqs);
-    let mut config = Config::new(0xc0de, 0xbabe);
+    let mut config = Config::new(USB_VID, USB_PID);
     config.manufacturer = Some("Embassy");
     config.product = Some("Drone Console");
     config.serial_number = Some("0xBABECAFE");

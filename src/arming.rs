@@ -1,10 +1,6 @@
+use crate::consts::{ARM_HOLD_TICKS, DISARM_HOLD_TICKS};
 use crate::rc::RcData;
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal};
-
-/// Minimum number of ticks (1ms each) to hold arming stick position
-const ARM_HOLD_TICKS: u64 = 1000;
-/// Number of failsafe ticks before auto-disarming (0.1 seconds at 1kHz)
-const FAILSAFE_DISARM_TICKS: u64 = 100;
 
 pub static DISARMED: Signal<CriticalSectionRawMutex, ()> = Signal::new();
 
@@ -47,7 +43,7 @@ impl Arming {
         if !rc_valid {
             if self.state == ArmingState::Armed {
                 self.failsafe_ticks += 1;
-                if self.failsafe_ticks >= FAILSAFE_DISARM_TICKS {
+                if self.failsafe_ticks >= DISARM_HOLD_TICKS {
                     log::warn!("Auto-disarm: failsafe timeout");
                     self.state = ArmingState::Disarmed;
                 }
