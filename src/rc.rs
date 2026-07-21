@@ -1,8 +1,8 @@
+use crate::consts::{ALT_MODE_MAX, ALT_MODE_MIN, KI_MAX, KI_MIN, KP_MAX, KP_MIN, RC_MAX, RC_MIN};
 use crate::{setup, telemetry::Category};
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::watch::Watch;
 use embassy_time::{Duration, with_timeout};
-use crate::consts::{RC_MIN, RC_MAX, KP_MIN, KP_MAX, KI_MIN, KI_MAX};
 
 pub static RC_DATA: Watch<CriticalSectionRawMutex, RcData, 1> = Watch::new();
 
@@ -42,6 +42,14 @@ impl RcData {
         Self::normalize(self.0[6], RC_MIN, RC_MAX, 0.0, 1.0)
     }
 
+    pub fn altitude_switch(&self) -> f32 {
+        Self::normalize(self.0[7], RC_MIN, RC_MAX, 0.0, 1.0)
+    }
+
+    pub fn altitude_target(&self) -> f32 {
+        Self::normalize(self.0[8], RC_MIN, RC_MAX, ALT_MODE_MIN, ALT_MODE_MAX)
+    }
+
     fn normalize(
         val: u16,
         original_min: u16,
@@ -75,9 +83,9 @@ pub async fn rc_task(mut uart: setup::UartReader) -> ! {
                             #[rustfmt::skip]
                             tele!(
                                 1, Category::Rc,
-                                rc_data.0[0], rc_data.0[1], rc_data.0[2],
-                                rc_data.0[3], rc_data.0[4], rc_data.0[5], 
-                                rc_data.0[6]);
+                                rc_data.roll(), rc_data.pitch(), rc_data.throttle(),
+                                rc_data.yaw(), rc_data.kp_gain(), rc_data.ki_gain(),
+                                rc_data.arm_switch(), rc_data.altitude_switch(), rc_data.altitude_target());
 
                             rc_sender.send(rc_data);
                             continue;

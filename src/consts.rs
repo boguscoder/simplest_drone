@@ -14,7 +14,7 @@ pub const LOG_DIVISOR: u64 = 4;
 pub mod tele_consts {
     pub const USB_VID: u16 = 0xc0de;
     pub const USB_PID: u16 = 0xbabe;
-    pub const TELE_MAX_VALUES: usize = 8;
+    pub const TELE_MAX_VALUES: usize = 9;
     pub const TELE_FRAME_SIZE: usize = 2 + TELE_MAX_VALUES * 4;
 }
 
@@ -46,6 +46,8 @@ pub const D_FILTER_CUTOFF_HZ: f32 = 50.0;
 pub const PID_YAW_KP: f32 = 0.08;
 pub const I_TERM_THROTTLE_LIMIT: f32 = 0.1;
 pub const AHRS_BETA: f32 = 0.05;
+pub const ALT_MODE_MIN: f32 = 1.0;
+pub const ALT_MODE_MAX: f32 = 3.0;
 
 // --- IMU ---
 pub const CALIBRATION_TICKS: usize = 2000;
