@@ -1,95 +1,35 @@
-use crate::consts::{ARM_HOLD_TICKS, DISARM_HOLD_TICKS};
 use crate::rc::RcData;
+use crate::{
+    consts::{ARM_HOLD_TICKS, DISARM_HOLD_TICKS},
+    switch::SwitchingPolicy,
+};
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal};
 
 pub static DISARMED: Signal<CriticalSectionRawMutex, ()> = Signal::new();
 
-#[derive(Copy, Clone, PartialEq)]
-pub enum ArmingState {
-    Disarmed,
-    Armed,
-}
+pub struct Arming;
 
-pub struct Arming {
-    state: ArmingState,
-    failsafe_ticks: u64,
-    arm_request_ticks: u64,
-    disarm_request_ticks: u64,
-}
+impl SwitchingPolicy for Arming {
+    type SafetyContext = bool; // rc_valid
 
-impl Arming {
-    pub const fn new() -> Self {
-        Self {
-            state: ArmingState::Disarmed,
-            failsafe_ticks: 0,
-            arm_request_ticks: 0,
-            disarm_request_ticks: 0,
-        }
+    const NAME: &'static str = "ARMING";
+    const ON_TICKS: u64 = ARM_HOLD_TICKS;
+    const OFF_TICKS: u64 = DISARM_HOLD_TICKS;
+
+    const OFF_SIGNAL: Option<&'static Signal<CriticalSectionRawMutex, ()>> = Some(&DISARMED);
+
+    #[inline(always)]
+    fn want_on(rc: &RcData) -> bool {
+        rc.throttle() < 0.1 && rc.arm_switch() > 0.5
     }
 
-    fn throttle_low(throttle: f32) -> bool {
-        throttle < 0.1
+    #[inline(always)]
+    fn want_off(rc: &RcData) -> bool {
+        rc.arm_switch() < 0.5
     }
 
-    fn arm_switch_high(rc_data: &RcData) -> bool {
-        rc_data.arm_switch() > 0.5
-    }
-
-    fn arm_switch_low(rc_data: &RcData) -> bool {
-        rc_data.arm_switch() < 0.5
-    }
-
-    pub fn update(&mut self, rc_data: &RcData, rc_valid: bool) -> ArmingState {
-        if !rc_valid {
-            if self.state == ArmingState::Armed {
-                self.failsafe_ticks += 1;
-                if self.failsafe_ticks >= DISARM_HOLD_TICKS {
-                    log::warn!("Auto-disarm: failsafe timeout");
-                    self.state = ArmingState::Disarmed;
-                }
-            }
-            self.arm_request_ticks = 0;
-            self.disarm_request_ticks = 0;
-            return self.state;
-        }
-
-        self.failsafe_ticks = 0;
-
-        match self.state {
-            ArmingState::Disarmed => self.try_arm(rc_data),
-            ArmingState::Armed => self.try_disarm(rc_data),
-        }
-        self.state
-    }
-
-    fn try_arm(&mut self, rc_data: &RcData) {
-        if Self::throttle_low(rc_data.throttle()) && Self::arm_switch_high(rc_data) {
-            self.arm_request_ticks += 1;
-            if self.arm_request_ticks >= ARM_HOLD_TICKS {
-                log::info!("Armed (switch command)");
-                self.state = ArmingState::Armed;
-                self.arm_request_ticks = 0;
-            }
-        } else {
-            self.arm_request_ticks = 0;
-        }
-    }
-
-    fn try_disarm(&mut self, rc_data: &RcData) {
-        if Self::arm_switch_low(rc_data) {
-            self.disarm_request_ticks += 1;
-            if self.disarm_request_ticks >= ARM_HOLD_TICKS {
-                log::info!("Disarmed (switch command)");
-                self.state = ArmingState::Disarmed;
-                self.disarm_request_ticks = 0;
-                DISARMED.signal(());
-            }
-        } else {
-            self.disarm_request_ticks = 0;
-        }
-    }
-
-    pub fn state(&self) -> ArmingState {
-        self.state
+    #[inline(always)]
+    fn force_off(_: &RcData, rc_valid: &bool) -> bool {
+        !*rc_valid // Safety trip: lost RC signal
     }
 }

@@ -14,17 +14,19 @@ mod motor;
 mod pid;
 mod rc;
 mod setup;
+mod switch;
 
 #[cfg(feature = "logging")]
 mod usb;
 
-use arming::{Arming, ArmingState};
+use arming::Arming;
 use consts::TICK_HZ;
 use embassy_dshot::{Command, DshotPioTrait};
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Ticker};
 use panic_probe as _;
 use rc::RcData;
+use switch::{Switch, SwitchState};
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
@@ -32,7 +34,7 @@ async fn main(spawner: Spawner) {
 
     let mut loop_ticker = Ticker::every(Duration::from_hz(TICK_HZ));
     let mut motor = motor::MotorInput::new(1.0 / TICK_HZ as f32);
-    let mut arming = Arming::new();
+    let mut arming = Switch::<Arming>::new();
     let mut rc_reader = rc::RC_DATA.receiver().unwrap();
     let mut imu_reader = imu::IMU_DATA.receiver().unwrap();
 
@@ -43,16 +45,16 @@ async fn main(spawner: Spawner) {
         let rc = rc_reader.try_get();
 
         let rc_ref = rc.as_ref().unwrap_or(&ZERO_RC);
-        arming.update(rc_ref, rc.is_some());
+        arming.update(rc_ref, &rc.is_some());
 
         let throttle = if let (Some(imu), Some(rc)) = (imu, rc) {
-            Some(motor.update(&rc, &imu, arming.state() == ArmingState::Armed))
+            Some(motor.update(&rc, &imu, arming.state() == SwitchState::Active))
         } else {
             None
         };
 
         match (throttle, arming.state()) {
-            (Some(t), ArmingState::Armed) => dshot.throttle_clamp(t).unwrap_or_default(),
+            (Some(t), SwitchState::Active) => dshot.throttle_clamp(t).unwrap_or_default(),
             _ => dshot.send_command(Command::MotorStop),
         }
 
