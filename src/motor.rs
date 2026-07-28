@@ -99,7 +99,13 @@ impl MotorInput {
         }
     }
 
-    pub fn update(&mut self, rc_data: &RcData, imu: &ImuData, is_armed: bool) -> [u16; 4] {
+    pub fn update(
+        &mut self,
+        rc_data: &RcData,
+        imu: &ImuData,
+        att: &[f32; 3],
+        is_armed: bool,
+    ) -> [u16; 4] {
         let kp = rc_data.kp_gain();
         self.pid_roll.kp = kp;
         self.pid_pitch.kp = kp;
@@ -117,18 +123,16 @@ impl MotorInput {
         }
 
         let target_angle_roll = -rc_data.roll() * MAX_LEAN_ANGLE;
-        let angle_error_roll = target_angle_roll - imu.att[0];
+        let angle_error_roll = target_angle_roll - att[0];
         let target_rate_roll = angle_error_roll * ANGLE_P_GAIN;
-        let pid_roll = self.pid_roll.update(target_rate_roll, imu.gyro_rates[0]);
+        let pid_roll = self.pid_roll.update(target_rate_roll, imu.gyro[0]);
 
         let target_angle_pitch = rc_data.pitch() * MAX_LEAN_ANGLE;
-        let angle_error_pitch = target_angle_pitch - imu.att[1];
+        let angle_error_pitch = target_angle_pitch - att[1];
         let target_rate_pitch = angle_error_pitch * ANGLE_P_GAIN;
-        let pid_pitch = self.pid_pitch.update(target_rate_pitch, imu.gyro_rates[1]);
+        let pid_pitch = self.pid_pitch.update(target_rate_pitch, imu.gyro[1]);
 
-        let pid_yaw = self
-            .pid_yaw
-            .update(rc_data.yaw() * YAW_RATE, -imu.gyro_rates[2]);
+        let pid_yaw = self.pid_yaw.update(rc_data.yaw() * YAW_RATE, -imu.gyro[2]);
 
         tele!(
             Category::Pid,

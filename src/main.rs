@@ -20,6 +20,7 @@ mod switch;
 mod usb;
 
 use arming::Arming;
+use attitude::Attitude;
 use consts::TICK_HZ;
 use embassy_dshot::{Command, DshotPioTrait};
 use embassy_executor::Spawner;
@@ -37,6 +38,7 @@ async fn main(spawner: Spawner) {
     let mut arming = Switch::<Arming>::new();
     let mut rc_reader = rc::RC_DATA.receiver().unwrap();
     let mut imu_reader = imu::IMU_DATA.receiver().unwrap();
+    let mut att_transformer = Attitude::new();
 
     const ZERO_RC: RcData = RcData::from_channels([0; 16]);
 
@@ -48,7 +50,9 @@ async fn main(spawner: Spawner) {
         arming.update(rc_ref, &rc.is_some());
 
         let throttle = if let (Some(imu), Some(rc)) = (imu, rc) {
-            Some(motor.update(&rc, &imu, arming.state() == SwitchState::Active))
+            att_transformer
+                .update(&imu.gyro, &imu.acc, &imu.mag, imu.dt)
+                .map(|att| motor.update(&rc, &imu, &att, arming.state() == SwitchState::Active))
         } else {
             None
         };

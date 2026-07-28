@@ -1,13 +1,15 @@
 use crate::consts::{ACC_OFFSET, ACC_SCALE, CALIBRATION_TICKS, TICK_HZ};
-use crate::{arming::DISARMED, attitude::Attitude, setup, telemetry::Category};
+use crate::{arming::DISARMED, setup, telemetry::Category};
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, watch::Watch};
 use embassy_time::{Duration, Instant, Ticker, Timer};
 use nalgebra::Vector3;
 
 #[derive(Clone)]
 pub struct ImuData {
-    pub att: [f32; 3],
-    pub gyro_rates: Vector3<f32>,
+    pub gyro: Vector3<f32>,
+    pub acc: Vector3<f32>,
+    pub mag: Vector3<f32>,
+    pub dt: f32,
 }
 
 pub static IMU_DATA: Watch<CriticalSectionRawMutex, ImuData, 1> = Watch::new();
@@ -22,7 +24,6 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
     let mut gyr_bias: Vector3<f32> = Vector3::zeros();
 
     let imu_sender = IMU_DATA.sender();
-    let mut att_transformer = Attitude::new();
     let mut last_time = Instant::now();
 
     loop {
@@ -76,12 +77,12 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
                 corrected_gyr[0], corrected_gyr[1], corrected_gyr[2],
                 corrected_acc[0], corrected_acc[1], corrected_acc[2]);
 
-            if let Some(att) = att_transformer.update(&corrected_gyr, &corrected_acc, &mag, dt) {
-                imu_sender.send(ImuData {
-                    att,
-                    gyro_rates: corrected_gyr,
-                })
-            }
+            imu_sender.send(ImuData {
+                gyro: corrected_gyr,
+                acc: corrected_acc,
+                mag,
+                dt,
+            });
             total_ticks += 1;
         }
 
