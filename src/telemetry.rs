@@ -5,6 +5,7 @@ use num_enum::TryFromPrimitive;
 pub enum Category {
     None = 0,
     Imu,
+    Baro,
     Rc,
     Attitude,
     Pid,

@@ -24,3 +24,11 @@ macro_rules! rl_log {
         }
     };
 }
+
+#[macro_export]
+macro_rules! log_and_panic {
+    ($($arg:tt)*) => {{
+        log::error!($($arg)*);
+        panic!($($arg)*);
+    }};
+}

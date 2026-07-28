@@ -128,6 +128,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bmp388-embedded"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "90a578a4fc29e174901cd2fa7b2d9aafdeac68ef63618c379b5f0c7fa61df510"
+dependencies = [
+ "embedded-hal 1.0.0",
+ "embedded-hal-async",
+]
+
+[[package]]
 name = "bytemuck"
 version = "1.16.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -577,6 +587,16 @@ version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c4c685bbef7fe13c3c6dd4da26841ed3980ef33e841cddfa15ce8a8fb3f1884"
 dependencies = [
+ "embedded-hal 1.0.0",
+]
+
+[[package]]
+name = "embedded-hal-bus"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "513e0b3a8fb7d3013a8ae17a834283f170deaf7d0eeab0a7c1a36ad4dd356d22"
+dependencies = [
+ "critical-section",
  "embedded-hal 1.0.0",
 ]
 
@@ -1405,16 +1425,18 @@ name = "simplest_drone"
 version = "0.1.0"
 dependencies = [
  "ahrs",
+ "bmp388-embedded",
  "cortex-m-rt",
  "embassy-dshot",
  "embassy-embedded-hal",
  "embassy-executor",
  "embassy-futures",
  "embassy-rp",
- "embassy-sync 0.8.0",
+ "embassy-sync 0.7.2",
  "embassy-time",
  "embassy-usb",
  "embassy-usb-logger",
+ "embedded-hal-bus",
  "icm20948-async",
  "log",
  "nalgebra",

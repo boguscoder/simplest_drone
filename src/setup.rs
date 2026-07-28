@@ -1,6 +1,10 @@
 use crate::consts::{I2C_FREQ, IMU_I2C_ADDR, SBUS_BAUD, SYSTEM_FREQ};
-use crate::{imu, rc};
+use crate::{baro, device::I2cPeripheral, imu, log_and_panic, rc};
+use bmp388_embedded::{
+    Address, IirFilter, OutputDataRate, Oversampling, PowerMode, SensorConfig, r#async::Bmp388Async,
+};
 use embassy_dshot::{DshotPioTrait, DshotSpeed, rp::DshotPio};
+use embassy_embedded_hal::shared_bus::asynch::i2c::I2cDevice;
 use embassy_executor::{Executor, Spawner};
 use embassy_rp::{
     clocks::{ClockConfig, CoreVoltage},
@@ -9,7 +13,8 @@ use embassy_rp::{
     multicore::Stack,
     uart::{self, DataBits, Parity, StopBits, UartRx},
 };
-use embassy_time::Delay;
+use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex};
+use embassy_time::{Delay, Timer};
 use icm20948_async::{
     AccDlp, AccRange, AccUnit, BusI2c, GyrDlp, GyrRange, GyrUnit, Icm20948, IcmBuilder,
 };
@@ -18,10 +23,11 @@ use static_cell::StaticCell;
 #[cfg(feature = "logging")]
 use crate::usb;
 
-pub type ImuReader = Icm20948<
-    BusI2c<i2c::I2c<'static, crate::device::I2cPeripheral, i2c::Async>>,
-    icm20948_async::MagEnabled,
->;
+pub type I2cHw = i2c::I2c<'static, I2cPeripheral, i2c::Async>;
+pub type SharedI2cBus = Mutex<CriticalSectionRawMutex, I2cHw>;
+pub type SharedI2cDevice = I2cDevice<'static, CriticalSectionRawMutex, I2cHw>;
+pub type ImuReader = Icm20948<BusI2c<SharedI2cDevice>, icm20948_async::MagEnabled>;
+pub type BaroReader = Bmp388Async<SharedI2cDevice, Delay>;
 pub type UartReader = UartRx<'static, uart::Async>;
 
 pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
@@ -60,7 +66,7 @@ pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
     let mut i2c_config = i2c::Config::default();
     i2c_config.frequency = I2C_FREQ;
 
-    let i2c = i2c::I2c::new_async(
+    let raw_i2c = i2c::I2c::new_async(
         device.imu.i2c,
         device.imu.scl,
         device.imu.sda,
@@ -68,7 +74,13 @@ pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
         i2c_config,
     );
 
-    let imu_result = IcmBuilder::new_i2c(i2c, Delay)
+    static I2C_BUS: StaticCell<SharedI2cBus> = StaticCell::new();
+
+    let i2c_bus = I2C_BUS.init(Mutex::new(raw_i2c));
+    let bmp_i2c = I2cDevice::new(i2c_bus);
+    let icm_i2c = I2cDevice::new(i2c_bus);
+
+    let imu_result = IcmBuilder::new_i2c(icm_i2c, Delay)
         .gyr_range(GyrRange::Dps2000)
         .gyr_unit(GyrUnit::Rps)
         .gyr_dlp(GyrDlp::Hz51)
@@ -80,15 +92,39 @@ pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
         .await;
 
     let Ok(imu) = imu_result else {
-        panic!("Failed to initialize IMU")
+        log_and_panic!("Failed to initialize IMU")
     };
 
+    let baro_result = Bmp388Async::new(bmp_i2c, Delay, Address::Secondary).await;
+
+    let Ok(mut baro) = baro_result else {
+        log_and_panic!("Failed to initialize Barometer")
+    };
+
+    baro.set_sensor_config(SensorConfig {
+        pressure_oversampling: Oversampling::X8,
+        temperature_oversampling: Oversampling::X1,
+        iir_filter: IirFilter::Off,
+        output_data_rate: OutputDataRate::Hz25,
+    })
+    .await
+    .ok();
+
+    Timer::after_millis(10).await;
+
+    baro.set_power_control(true, true, PowerMode::Normal)
+        .await
+        .unwrap();
+
+    Timer::after_millis(10).await;
+
     static CORE_EXECUTOR: StaticCell<Executor> = StaticCell::new();
-    static CORE_STACK: StaticCell<Stack<2048>> = StaticCell::new();
+    static CORE_STACK: StaticCell<Stack<16384>> = StaticCell::new();
 
     embassy_rp::multicore::spawn_core1(device.core1, CORE_STACK.init(Stack::new()), move || {
         let executor = CORE_EXECUTOR.init(Executor::new());
         executor.run(|spawner| {
+            spawner.spawn(baro::baro_task(baro).unwrap());
             spawner.spawn(imu::imu_task(imu).unwrap());
         })
     });

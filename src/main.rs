@@ -6,6 +6,7 @@ mod telemetry;
 
 mod arming;
 mod attitude;
+mod baro;
 mod consts;
 mod device;
 mod imu;

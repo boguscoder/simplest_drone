@@ -2,6 +2,7 @@ use nalgebra::Vector3;
 
 // --- System & Hardware ---
 pub const TICK_HZ: u64 = 1000;
+pub const BARO_HZ: u64 = 25;
 pub const SYSTEM_FREQ: u32 = 200_000_000;
 pub const SBUS_BAUD: u32 = 100_000;
 pub const I2C_FREQ: u32 = 400_000;
@@ -46,8 +47,8 @@ pub const D_FILTER_CUTOFF_HZ: f32 = 50.0;
 pub const PID_YAW_KP: f32 = 0.08;
 pub const I_TERM_THROTTLE_LIMIT: f32 = 0.1;
 pub const AHRS_BETA: f32 = 0.05;
-pub const ALT_MODE_MIN: f32 = 1.0;
-pub const ALT_MODE_MAX: f32 = 3.0;
+pub const ALT_MODE_MIN: f32 = -1.0;
+pub const ALT_MODE_MAX: f32 = 1.0;
 
 // --- IMU ---
 pub const CALIBRATION_TICKS: usize = 2000;
