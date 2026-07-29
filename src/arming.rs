@@ -29,7 +29,7 @@ impl SwitchingPolicy for Arming {
     }
 
     #[inline(always)]
-    fn force_off(_: &RcData, rc_valid: &bool) -> bool {
-        !*rc_valid // Safety trip: lost RC signal
+    fn force_off(_: &RcData, rc_valid: bool) -> bool {
+        !rc_valid // Safety trip: lost RC signal
     }
 }

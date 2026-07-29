@@ -6,7 +6,7 @@ pub trait SwitchingPolicy {
 
     fn want_on(rc: &RcData) -> bool;
     fn want_off(rc: &RcData) -> bool;
-    fn force_off(rc: &RcData, ctx: &Self::SafetyContext) -> bool;
+    fn force_off(rc: &RcData, ctx: Self::SafetyContext) -> bool;
 
     const ON_TICKS: u64;
     const OFF_TICKS: u64;
@@ -39,7 +39,7 @@ impl<P: SwitchingPolicy> Switch<P> {
         }
     }
 
-    pub fn update(&mut self, rc: &RcData, ctx: &P::SafetyContext) -> SwitchState {
+    pub fn update(&mut self, rc: &RcData, ctx: P::SafetyContext) -> SwitchState {
         if P::force_off(rc, ctx) {
             self.ticks = 0;
             if self.state == SwitchState::Active {

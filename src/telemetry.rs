@@ -11,6 +11,7 @@ pub enum Category {
     Pid,
     Mix,
     Dshot,
+    AdHoc,
 }
 
 #[cfg(feature = "telemetry")]

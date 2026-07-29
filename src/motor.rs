@@ -1,7 +1,8 @@
+use crate::alt_hold::{ALT_HOLD_OFF_SIGNAL, ALT_HOLD_ON_SIGNAL};
 use crate::consts::{
-    ANGLE_P_GAIN, D_FILTER_CUTOFF_HZ, I_TERM_THROTTLE_LIMIT, KD_MIN, KI_MIN, KP_MIN,
-    MAX_LEAN_ANGLE, MAX_POWER, PID_LIMIT_MAX, PID_LIMIT_MIN, PID_YAW_KP, SLOPE, THROTTLE_MIN,
-    YAW_RATE,
+    ALT_KD_MIN, ALT_KI_MIN, ALT_KP_MIN, ALT_PID_LIMIT_MAX, ALT_PID_LIMIT_MIN, ANGLE_P_GAIN,
+    D_FILTER_CUTOFF_HZ, I_TERM_THROTTLE_LIMIT, KD_MIN, KI_MIN, KP_MIN, MAX_LEAN_ANGLE, MAX_POWER,
+    PID_LIMIT_MAX, PID_LIMIT_MIN, PID_YAW_KP, SLOPE, THROTTLE_MIN, YAW_RATE,
 };
 use crate::imu::ImuData;
 use crate::pid::{self, Pid};
@@ -61,6 +62,9 @@ pub struct MotorInput {
     pid_roll: Pid,
     pid_pitch: Pid,
     pid_yaw: Pid,
+    pid_alt: Pid,
+    target_alt: f32,
+    hover_throttle: f32,
 }
 
 impl MotorInput {
@@ -68,6 +72,10 @@ impl MotorInput {
         let pid_limits = Some(pid::Limits {
             min: PID_LIMIT_MIN,
             max: PID_LIMIT_MAX,
+        });
+        let alt_pid_limits = Some(pid::Limits {
+            min: ALT_PID_LIMIT_MIN,
+            max: ALT_PID_LIMIT_MAX,
         });
         let d_filter_cutoff_hz = Some(D_FILTER_CUTOFF_HZ);
 
@@ -96,6 +104,16 @@ impl MotorInput {
                 pid_limits,
                 d_filter_cutoff_hz,
             ),
+            pid_alt: Pid::new(
+                ALT_KP_MIN,
+                ALT_KI_MIN,
+                ALT_KD_MIN,
+                cycle_time,
+                alt_pid_limits,
+                None,
+            ),
+            target_alt: 0.0,
+            hover_throttle: 0.0,
         }
     }
 
@@ -104,7 +122,9 @@ impl MotorInput {
         rc_data: &RcData,
         imu: &ImuData,
         att: &[f32; 3],
+        alt: f32,
         is_armed: bool,
+        alt_hold: bool,
     ) -> [u16; 4] {
         let kp = rc_data.kp_gain();
         self.pid_roll.kp = kp;
@@ -116,11 +136,36 @@ impl MotorInput {
 
         let allow_i_term = rc_data.throttle() > I_TERM_THROTTLE_LIMIT;
 
-        if !allow_i_term {
+        if !allow_i_term || !is_armed {
             self.pid_roll.prev_i = 0.0;
             self.pid_pitch.prev_i = 0.0;
             self.pid_yaw.prev_i = 0.0;
+            self.pid_alt.prev_i = 0.0;
         }
+
+        if ALT_HOLD_ON_SIGNAL.try_take().is_some() {
+            self.target_alt = alt;
+            self.hover_throttle = rc_data.throttle().clamp(0.3, 0.6);
+            self.pid_alt.prev_i = 0.0;
+            log::info!(
+                "AltHold locked: {:.2}m | Hover throttle: {:.2}",
+                self.target_alt,
+                self.hover_throttle
+            );
+        }
+
+        if ALT_HOLD_OFF_SIGNAL.try_take().is_some() {
+            self.pid_alt.prev_i = 0.0;
+        }
+
+        let mut pid_alt = 0.0;
+        let throttle = if alt_hold {
+            let alt_error = self.target_alt - alt;
+            pid_alt = self.pid_alt.update(alt_error, alt);
+            (self.hover_throttle + pid_alt).clamp(0.0, MAX_POWER)
+        } else {
+            rc_data.throttle()
+        };
 
         let target_angle_roll = -rc_data.roll() * MAX_LEAN_ANGLE;
         let angle_error_roll = target_angle_roll - att[0];
@@ -139,11 +184,13 @@ impl MotorInput {
             pid_roll,
             pid_pitch,
             pid_yaw,
+            pid_alt,
             self.pid_roll.prev_i,
             self.pid_pitch.prev_i,
-            self.pid_yaw.prev_i
+            self.pid_yaw.prev_i,
+            self.pid_alt.prev_i,
         );
 
-        inputs_to_throttle(rc_data.throttle(), pid_roll, pid_pitch, pid_yaw, is_armed)
+        inputs_to_throttle(throttle, pid_roll, pid_pitch, pid_yaw, is_armed)
     }
 }
