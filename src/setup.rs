@@ -104,8 +104,8 @@ pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
     baro.set_sensor_config(SensorConfig {
         pressure_oversampling: Oversampling::X8,
         temperature_oversampling: Oversampling::X1,
-        iir_filter: IirFilter::Off,
-        output_data_rate: OutputDataRate::Hz25,
+        iir_filter: IirFilter::Coeff63,
+        output_data_rate: OutputDataRate::Hz50,
     })
     .await
     .ok();

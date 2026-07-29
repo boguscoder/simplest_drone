@@ -2,7 +2,7 @@ use nalgebra::Vector3;
 
 // --- System & Hardware ---
 pub const TICK_HZ: u64 = 1000;
-pub const BARO_HZ: u64 = 25;
+pub const BARO_HZ: u64 = 50;
 pub const SYSTEM_FREQ: u32 = 200_000_000;
 pub const SBUS_BAUD: u32 = 100_000;
 pub const I2C_FREQ: u32 = 400_000;
