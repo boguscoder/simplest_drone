@@ -1,8 +1,9 @@
 use crate::alt_hold::{ALT_HOLD_OFF_SIGNAL, ALT_HOLD_ON_SIGNAL};
 use crate::consts::{
-    ALT_KD_MIN, ALT_KI_MIN, ALT_KP_MIN, ALT_PID_LIMIT_MAX, ALT_PID_LIMIT_MIN, ANGLE_P_GAIN,
-    D_FILTER_CUTOFF_HZ, I_TERM_THROTTLE_LIMIT, KD_MIN, KI_MIN, KP_MIN, MAX_LEAN_ANGLE, MAX_POWER,
-    PID_LIMIT_MAX, PID_LIMIT_MIN, PID_YAW_KP, SLOPE, THROTTLE_MIN, YAW_RATE,
+    ALT_HOLD_SMOOTHING_TICKS, ALT_HOLD_THROTTLE_MAX, ALT_HOLD_THROTTLE_MIN, ALT_KD_MIN, ALT_KI_MIN,
+    ALT_KP_MIN, ALT_PID_LIMIT_MAX, ALT_PID_LIMIT_MIN, ANGLE_P_GAIN, D_FILTER_CUTOFF_HZ,
+    I_TERM_THROTTLE_LIMIT, KD_MIN, KI_MIN, KP_MIN, MAX_LEAN_ANGLE, MAX_POWER, PID_LIMIT_MAX,
+    PID_LIMIT_MIN, PID_YAW_KP, SLOPE, THROTTLE_MIN, YAW_RATE,
 };
 use crate::imu::ImuData;
 use crate::pid::{self, Pid};
@@ -65,6 +66,7 @@ pub struct MotorInput {
     pid_alt: Pid,
     target_alt: f32,
     hover_throttle: f32,
+    alt_hold_entry_ticks: u16,
 }
 
 impl MotorInput {
@@ -114,6 +116,7 @@ impl MotorInput {
             ),
             target_alt: 0.0,
             hover_throttle: 0.0,
+            alt_hold_entry_ticks: 0,
         }
     }
 
@@ -140,13 +143,19 @@ impl MotorInput {
             self.pid_roll.prev_i = 0.0;
             self.pid_pitch.prev_i = 0.0;
             self.pid_yaw.prev_i = 0.0;
-            self.pid_alt.prev_i = 0.0;
+
+            if !alt_hold {
+                self.pid_alt.prev_i = 0.0;
+            }
         }
 
         if ALT_HOLD_ON_SIGNAL.try_take().is_some() {
             self.target_alt = alt;
-            self.hover_throttle = rc_data.throttle().clamp(0.3, 0.6);
+            self.hover_throttle = rc_data
+                .throttle()
+                .clamp(ALT_HOLD_THROTTLE_MIN, ALT_HOLD_THROTTLE_MAX);
             self.pid_alt.prev_i = 0.0;
+            self.alt_hold_entry_ticks = ALT_HOLD_SMOOTHING_TICKS;
             log::info!(
                 "AltHold locked: {:.2}m | Hover throttle: {:.2}",
                 self.target_alt,
@@ -162,7 +171,18 @@ impl MotorInput {
         let throttle = if alt_hold {
             let alt_error = self.target_alt - alt;
             pid_alt = self.pid_alt.update(alt_error, alt);
-            (self.hover_throttle + pid_alt).clamp(0.0, MAX_POWER)
+
+            let alt_correction = if self.alt_hold_entry_ticks > 0 {
+                self.alt_hold_entry_ticks -= 1;
+                let scale =
+                    1.0 - (self.alt_hold_entry_ticks as f32 / ALT_HOLD_SMOOTHING_TICKS as f32);
+                pid_alt * scale
+            } else {
+                pid_alt
+            };
+            pid_alt = alt_correction;
+
+            (self.hover_throttle + alt_correction).clamp(0.0, MAX_POWER)
         } else {
             rc_data.throttle()
         };
