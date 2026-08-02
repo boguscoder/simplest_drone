@@ -49,8 +49,8 @@ pub const ALT_KD_MIN: f32 = 0.0;
 pub const ALT_PID_LIMIT_MIN: f32 = -0.15;
 pub const ALT_PID_LIMIT_MAX: f32 = 0.15;
 pub const ALT_HOLD_SMOOTHING_TICKS: u16 = 250;
-pub const ALT_HOLD_THROTTLE_MIN: f32 = 0.3;
-pub const ALT_HOLD_THROTTLE_MAX: f32 = 0.65;
+pub const ALT_HOLD_THROTTLE_MIN: f32 = 0.15;
+pub const ALT_HOLD_THROTTLE_MAX: f32 = 0.50;
 
 pub const D_FILTER_CUTOFF_HZ: f32 = 50.0;
 pub const PID_YAW_KP: f32 = 0.08;
