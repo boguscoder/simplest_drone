@@ -35,7 +35,7 @@ pub async fn baro_task(mut baro: setup::BaroReader) -> ! {
             1013.25,
         );
 
-        tele!(1, Category::Baro, data.temperature as f32, alt);
+        tele!(Category::Baro, data.temperature as f32, alt);
         alt_sender.send(alt);
         loop_ticker.next().await;
     }

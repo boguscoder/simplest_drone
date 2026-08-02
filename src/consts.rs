@@ -9,8 +9,6 @@ pub const I2C_FREQ: u32 = 400_000;
 pub const IMU_I2C_ADDR: u8 = 0x69;
 
 // --- Telemetry ---
-pub const LOG_DIVISOR: u64 = 4;
-
 #[cfg(feature = "telemetry")]
 pub mod tele_consts {
     pub const USB_VID: u16 = 0xc0de;

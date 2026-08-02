@@ -82,7 +82,7 @@ pub async fn rc_task(mut uart: setup::UartReader) -> ! {
 
                             #[rustfmt::skip]
                             tele!(
-                                1, Category::Rc,
+                                Category::Rc,
                                 rc_data.roll(), rc_data.pitch(), rc_data.throttle(),
                                 rc_data.yaw(), rc_data.kp_gain(), rc_data.ki_gain(),
                                 rc_data.arm_switch(), rc_data.altitude_switch(), rc_data.unused());
