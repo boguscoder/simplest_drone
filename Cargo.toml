@@ -29,7 +29,6 @@ embedded-hal-bus = "0.3.0"
 
 icm20948-async = { git = "https://github.com/peterkrull/icm20948-async" }
 
-libm = "0.2.16"
 log = "0.4.27"
 
 nalgebra = { version = "0.33.2", default-features = false, features = ["libm"] }

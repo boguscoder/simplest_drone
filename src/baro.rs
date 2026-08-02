@@ -4,39 +4,51 @@ use embassy_time::{Duration, Ticker};
 
 pub static ALT_DATA: Watch<CriticalSectionRawMutex, f32, 1> = Watch::new();
 
-fn precise_altitude(pressure_hpa: f32, temp_celsius: f32, sea_level_pressure: f32) -> f32 {
-    if pressure_hpa <= 0.0 {
-        return 0.0;
-    }
-    // Convert ambient temperature to Kelvin
-    let temp_kelvin = temp_celsius + 273.15;
-    // Hypsometric constants for the troposphere
-    let lapse_rate = 0.0065; // Temperature drop per meter (K/m)
-    let exponent = 0.190284; // (R * L) / (g * M)
-    let pressure_ratio = sea_level_pressure / pressure_hpa;
-    let power_result = libm::powf(pressure_ratio, exponent);
-    (temp_kelvin / lapse_rate) * (power_result - 1.0)
-}
-
 #[embassy_executor::task]
 pub async fn baro_task(mut baro: setup::BaroReader) -> ! {
     let mut loop_ticker = Ticker::every(Duration::from_hz(BARO_HZ));
     let alt_sender = ALT_DATA.sender();
 
+    let mut ground_pa: Option<f32> = None;
+    let mut tick_count: usize = 0;
+    let mut pa_accumulator = 0.0f32;
+
+    const SKIP_TICKS: usize = 25;
+    const CALIB_TICKS: usize = SKIP_TICKS;
+
     loop {
         let Ok(data) = baro.sensor_data().await else {
-            log::error!("Failed to read Barometer pressure");
             continue;
         };
 
-        let alt = precise_altitude(
-            data.pressure as f32 / 100.0,
-            data.temperature as f32,
-            1013.25,
-        );
+        let current_pa = data.pressure as f32;
+        tick_count += 1;
 
-        tele!(Category::Baro, data.temperature as f32, alt);
-        alt_sender.send(alt);
+        if tick_count <= SKIP_TICKS {
+            loop_ticker.next().await;
+            continue;
+        }
+
+        let relative_alt = match ground_pa {
+            Some(base) => (base - current_pa) * 0.0843,
+            None => {
+                pa_accumulator += current_pa;
+
+                if tick_count >= (SKIP_TICKS + CALIB_TICKS) {
+                    let avg_base = pa_accumulator / (CALIB_TICKS as f32);
+                    ground_pa = Some(avg_base);
+                    log::info!(
+                        "Baro calibrated after {} ticks. Base: {:.2} Pa",
+                        tick_count,
+                        avg_base
+                    );
+                }
+                0.0
+            }
+        };
+
+        tele!(Category::Baro, relative_alt);
+        alt_sender.send(relative_alt);
         loop_ticker.next().await;
     }
 }

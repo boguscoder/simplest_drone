@@ -1438,7 +1438,6 @@ dependencies = [
  "embassy-usb-logger",
  "embedded-hal-bus",
  "icm20948-async",
- "libm",
  "log",
  "nalgebra",
  "num_enum",
