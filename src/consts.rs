@@ -2,6 +2,7 @@ use nalgebra::Vector3;
 
 // --- System & Hardware ---
 pub const TICK_HZ: u64 = 1000;
+pub const CYCLE_TIME: f32 = 1.0 / TICK_HZ as f32;
 pub const BARO_HZ: u64 = 50;
 pub const SYSTEM_FREQ: u32 = 200_000_000;
 pub const SBUS_BAUD: u32 = 100_000;
@@ -48,7 +49,6 @@ pub const ALT_KI_MIN: f32 = 0.005;
 pub const ALT_KD_MIN: f32 = 0.0;
 pub const ALT_PID_LIMIT_MIN: f32 = -0.15;
 pub const ALT_PID_LIMIT_MAX: f32 = 0.15;
-pub const ALT_HOLD_SMOOTHING_TICKS: u16 = 250;
 pub const ALT_HOLD_THROTTLE_MIN: f32 = 0.15;
 pub const ALT_HOLD_THROTTLE_MAX: f32 = 0.50;
 

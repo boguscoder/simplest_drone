@@ -64,12 +64,28 @@ impl RcData {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RcError {
+    None,
+    Failsafe,
+    ReadError,
+    Timeout,
+}
+
+fn change_state(state: &mut RcError, new_state: RcError) {
+    if *state != new_state {
+        log::info!("RC state changed from {:?} to {:?}", state, new_state);
+        *state = new_state;
+    }
+}
+
 #[embassy_executor::task]
 pub async fn rc_task(mut uart: setup::UartReader) -> ! {
     let rc_timeout = Duration::from_millis(100);
     let mut read_buffer = [0u8; 25];
     let mut sbusparser = sbus::SBusPacketParser::new();
     let rc_sender = RC_DATA.sender();
+    let mut state = RcError::None;
 
     loop {
         let read_result = with_timeout(rc_timeout, uart.read(&mut read_buffer)).await;
@@ -79,6 +95,7 @@ pub async fn rc_task(mut uart: setup::UartReader) -> ! {
                 if let Some(packet) = sbusparser.try_parse() {
                     match packet.failsafe {
                         false => {
+                            change_state(&mut state, RcError::None);
                             let rc_data = RcData::from_channels(packet.channels);
 
                             #[rustfmt::skip]
@@ -91,15 +108,15 @@ pub async fn rc_task(mut uart: setup::UartReader) -> ! {
                             rc_sender.send(rc_data);
                             continue;
                         }
-                        true => log::error!("Failsafe"),
+                        true => change_state(&mut state, RcError::Failsafe),
                     }
                 }
             }
             Ok(Err(_e)) => {
-                log::error!("Serial read err {_e:?}");
+                change_state(&mut state, RcError::ReadError);
             }
             Err(_) => {
-                log::error!("Serial timeout");
+                change_state(&mut state, RcError::Timeout);
             }
         }
         rc_sender.clear();

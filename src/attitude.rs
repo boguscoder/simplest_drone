@@ -1,7 +1,6 @@
-use crate::consts::{AHRS_BETA, TICK_HZ};
+use crate::consts::{AHRS_BETA, CYCLE_TIME};
 use ahrs::{Ahrs, Madgwick};
-use drone_consts::telemetry::Category;
-use nalgebra::Vector3;
+use nalgebra::{UnitQuaternion, Vector3};
 
 pub struct Attitude {
     ahrs: Madgwick<f32>,
@@ -10,7 +9,7 @@ pub struct Attitude {
 impl Attitude {
     pub fn new() -> Attitude {
         Attitude {
-            ahrs: Madgwick::new(1.0 / TICK_HZ as f32, AHRS_BETA),
+            ahrs: Madgwick::new(CYCLE_TIME, AHRS_BETA),
         }
     }
 
@@ -20,7 +19,7 @@ impl Attitude {
         acc: &Vector3<f32>,
         mag: &Vector3<f32>,
         dt: f32,
-    ) -> Option<[f32; 3]> {
+    ) -> Option<UnitQuaternion<f32>> {
         *self.ahrs.sample_period_mut() = dt;
         let update_result = if mag != &Vector3::<f32>::zeros() && dt != 0.0 {
             self.ahrs.update(gyr, acc, mag)
@@ -29,13 +28,7 @@ impl Attitude {
         };
 
         match update_result {
-            Ok(quat) => {
-                let att: [f32; 3] = quat.euler_angles().into();
-
-                tele!(Category::Attitude, att[0], att[1], att[2]);
-
-                Some(att)
-            }
+            Ok(quat) => Some(*quat),
             Err(e) => {
                 log::error!("ahrs error: {:?}", e);
                 None
