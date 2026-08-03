@@ -1,8 +1,7 @@
 #![cfg(feature = "logging")]
 
 use crate::consts::{USB_PID, USB_VID};
-use crate::telemetry::Category;
-use core::convert::TryFrom;
+use drone_consts::telemetry::Category;
 use embassy_futures::join::{join, join3};
 use embassy_rp::bind_interrupts;
 use embassy_rp::peripherals::USB;

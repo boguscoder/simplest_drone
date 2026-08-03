@@ -1,19 +1,3 @@
-use num_enum::TryFromPrimitive;
-
-#[derive(Copy, Clone, PartialEq, TryFromPrimitive)]
-#[repr(u8)]
-pub enum Category {
-    None = 0,
-    Imu,
-    Baro,
-    Rc,
-    Attitude,
-    Pid,
-    Mix,
-    Dshot,
-    AdHoc,
-}
-
 #[cfg(feature = "telemetry")]
 pub static TELE_CATEGORY: portable_atomic::AtomicU8 = portable_atomic::AtomicU8::new(0);
 
@@ -32,9 +16,9 @@ macro_rules! tele {
     ($cat:path, $($v:expr),+ $(,)?) => {
         #[cfg(feature = "telemetry")]
         {
-            let current = $crate::telemetry::Category::try_from(
+            let current = Category::try_from(
                 $crate::telemetry::TELE_CATEGORY.load(portable_atomic::Ordering::Relaxed)
-            ).unwrap_or($crate::telemetry::Category::None);
+            ).unwrap_or(Category::None);
             if current == $cat {
                 let values = [$($v as f32),+];
                 let n = values.len().min($crate::consts::TELE_MAX_VALUES);

@@ -1,5 +1,6 @@
 use crate::consts::{KI_MAX, KI_MIN, KP_MAX, KP_MIN, RC_MAX, RC_MIN};
-use crate::{setup, telemetry::Category};
+use crate::setup;
+use drone_consts::telemetry::Category;
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::watch::Watch;
 use embassy_time::{Duration, with_timeout};

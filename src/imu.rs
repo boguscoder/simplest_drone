@@ -1,5 +1,6 @@
 use crate::consts::{ACC_OFFSET, ACC_SCALE, CALIBRATION_TICKS, TICK_HZ};
-use crate::{arming::DISARMED, setup, telemetry::Category};
+use crate::{arming::DISARMED, setup};
+use drone_consts::telemetry::Category;
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, watch::Watch};
 use embassy_time::{Duration, Instant, Ticker, Timer};
 use nalgebra::Vector3;

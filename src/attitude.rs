@@ -1,6 +1,6 @@
 use crate::consts::{AHRS_BETA, TICK_HZ};
-use crate::telemetry::Category;
 use ahrs::{Ahrs, Madgwick};
+use drone_consts::telemetry::Category;
 use nalgebra::Vector3;
 
 pub struct Attitude {

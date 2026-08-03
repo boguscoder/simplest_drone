@@ -8,7 +8,7 @@ use crate::consts::{
 use crate::imu::ImuData;
 use crate::pid::{self, Pid};
 use crate::rc::RcData;
-use crate::telemetry::Category;
+use drone_consts::telemetry::Category;
 
 pub fn pid_to_throttle(rc: f32) -> u16 {
     let clamped_rc = rc.clamp(0.0, MAX_POWER);

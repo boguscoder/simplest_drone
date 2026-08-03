@@ -1,4 +1,5 @@
-use crate::{consts::BARO_HZ, setup, telemetry::Category};
+use crate::{consts::BARO_HZ, setup};
+use drone_consts::telemetry::Category;
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, watch::Watch};
 use embassy_time::{Duration, Ticker};
 
