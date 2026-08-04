@@ -1,9 +1,9 @@
 use crate::alt_hold::{ALT_HOLD_OFF_SIGNAL, ALT_HOLD_ON_SIGNAL};
 use crate::consts::{
-    ALT_HOLD_THROTTLE_MAX, ALT_HOLD_THROTTLE_MIN, ALT_KD_MIN, ALT_KI_MIN, ALT_KP_MIN,
-    ALT_PID_LIMIT_MAX, ALT_PID_LIMIT_MIN, ANGLE_P_GAIN, D_FILTER_CUTOFF_HZ, I_TERM_THROTTLE_LIMIT,
-    KD_MIN, KI_MIN, KP_MIN, MAX_LEAN_ANGLE, MAX_POWER, PID_LIMIT_MAX, PID_LIMIT_MIN, PID_YAW_KP,
-    SLOPE, THROTTLE_MIN, YAW_RATE,
+    ALT_HOLD_THROTTLE_MAX, ALT_HOLD_THROTTLE_MIN, ALT_KD_MIN, ALT_KI_FIXED, ALT_KP_MIN,
+    ANGLE_P_GAIN, D_FILTER_CUTOFF_HZ, I_TERM_THROTTLE_LIMIT, KD_FIXED, KI_FIXED, KP_FIXED,
+    MAX_LEAN_ANGLE, MAX_POWER, PID_LIMIT_MAX, PID_LIMIT_MIN, SLOPE, THROTTLE_MIN, YAW_KD_FIXED,
+    YAW_KP_FIXED, YAW_RATE,
 };
 use crate::{
     imu::ImuData,
@@ -76,43 +76,39 @@ impl MotorInput {
             min: PID_LIMIT_MIN,
             max: PID_LIMIT_MAX,
         });
-        let alt_pid_limits = Some(pid::Limits {
-            min: ALT_PID_LIMIT_MIN,
-            max: ALT_PID_LIMIT_MAX,
-        });
         let d_filter_cutoff_hz = Some(D_FILTER_CUTOFF_HZ);
 
         MotorInput {
             pid_roll: Pid::new(
-                KP_MIN,
-                KI_MIN,
-                KD_MIN,
+                KP_FIXED,
+                KI_FIXED,
+                KD_FIXED,
                 cycle_time,
                 pid_limits,
                 d_filter_cutoff_hz,
             ),
             pid_pitch: Pid::new(
-                KP_MIN,
-                KI_MIN,
-                KD_MIN,
+                KP_FIXED,
+                KI_FIXED,
+                KD_FIXED,
                 cycle_time,
                 pid_limits,
                 d_filter_cutoff_hz,
             ),
             pid_yaw: Pid::new(
-                PID_YAW_KP,
-                KI_MIN,
-                KD_MIN,
+                YAW_KP_FIXED,
+                KI_FIXED,
+                YAW_KD_FIXED,
                 cycle_time,
                 pid_limits,
                 d_filter_cutoff_hz,
             ),
             pid_alt: Pid::new(
                 ALT_KP_MIN,
-                ALT_KI_MIN,
+                ALT_KI_FIXED,
                 ALT_KD_MIN,
                 cycle_time,
-                alt_pid_limits,
+                pid_limits,
                 None,
             ),
             target_alt: 0.0,
@@ -129,23 +125,18 @@ impl MotorInput {
         is_armed: bool,
         alt_hold: bool,
     ) -> [u16; 4] {
-        let kp = rc_data.kp_gain();
-        self.pid_roll.kp = kp;
-        self.pid_pitch.kp = kp;
-
-        let ki = rc_data.ki_gain();
-        self.pid_roll.ki = ki;
-        self.pid_pitch.ki = ki;
+        self.pid_alt.kp = rc_data.kp_gain();
+        self.pid_alt.kd = rc_data.kd_gain();
 
         let allow_i_term = rc_data.throttle() > I_TERM_THROTTLE_LIMIT;
 
         if !allow_i_term || !is_armed {
-            self.pid_roll.prev_i = 0.0;
-            self.pid_pitch.prev_i = 0.0;
-            self.pid_yaw.prev_i = 0.0;
+            self.pid_roll.i = 0.0;
+            self.pid_pitch.i = 0.0;
+            self.pid_yaw.i = 0.0;
 
             if !alt_hold {
-                self.pid_alt.prev_i = 0.0;
+                self.pid_alt.i = 0.0;
             }
         }
 
@@ -154,7 +145,7 @@ impl MotorInput {
             self.hover_throttle = rc_data
                 .throttle()
                 .clamp(ALT_HOLD_THROTTLE_MIN, ALT_HOLD_THROTTLE_MAX);
-            self.pid_alt.prev_i = 0.0;
+            self.pid_alt.i = 0.0;
             log::info!(
                 "AltHold locked: {:.2}m | Hover throttle: {:.2}",
                 self.target_alt,
@@ -163,7 +154,7 @@ impl MotorInput {
         }
 
         if ALT_HOLD_OFF_SIGNAL.try_take().is_some() {
-            self.pid_alt.prev_i = 0.0;
+            self.pid_alt.i = 0.0;
         }
 
         let mut pid_alt = 0.0;
@@ -193,10 +184,10 @@ impl MotorInput {
             pid_pitch,
             pid_yaw,
             pid_alt,
-            self.pid_roll.prev_i,
-            self.pid_pitch.prev_i,
-            self.pid_yaw.prev_i,
-            self.pid_alt.prev_i,
+            self.pid_roll.i,
+            self.pid_pitch.i,
+            self.pid_yaw.i,
+            self.pid_alt.i,
         );
 
         inputs_to_throttle(throttle, pid_roll, pid_pitch, pid_yaw, is_armed)

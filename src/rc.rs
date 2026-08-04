@@ -1,4 +1,4 @@
-use crate::consts::{KI_MAX, KI_MIN, KP_MAX, KP_MIN, RC_MAX, RC_MIN};
+use crate::consts::{ALT_KD_MAX, ALT_KD_MIN, ALT_KP_MAX, ALT_KP_MIN, RC_MAX, RC_MIN};
 use crate::setup;
 use drone_consts::telemetry::Category;
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
@@ -32,11 +32,11 @@ impl RcData {
     }
 
     pub fn kp_gain(&self) -> f32 {
-        Self::normalize(self.0[4], RC_MIN, RC_MAX, KP_MIN, KP_MAX)
+        Self::normalize(self.0[4], RC_MIN, RC_MAX, ALT_KP_MIN, ALT_KP_MAX)
     }
 
-    pub fn ki_gain(&self) -> f32 {
-        Self::normalize(self.0[5], RC_MIN, RC_MAX, KI_MIN, KI_MAX)
+    pub fn kd_gain(&self) -> f32 {
+        Self::normalize(self.0[5], RC_MIN, RC_MAX, ALT_KD_MIN, ALT_KD_MAX)
     }
 
     pub fn arm_switch(&self) -> f32 {
@@ -48,7 +48,7 @@ impl RcData {
     }
 
     pub fn unused(&self) -> f32 {
-        Self::normalize(self.0[8], RC_MIN, RC_MAX, -1.0, 1.0)
+        Self::normalize(self.0[8], RC_MIN, RC_MAX, 0.0, 1.0)
     }
 
     fn normalize(
@@ -102,7 +102,7 @@ pub async fn rc_task(mut uart: setup::UartReader) -> ! {
                             tele!(
                                 Category::Rc,
                                 rc_data.roll(), rc_data.pitch(), rc_data.throttle(),
-                                rc_data.yaw(), rc_data.kp_gain(), rc_data.ki_gain(),
+                                rc_data.yaw(), rc_data.kp_gain(), rc_data.kd_gain(),
                                 rc_data.arm_switch(), rc_data.altitude_switch(), rc_data.unused());
 
                             rc_sender.send(rc_data);
