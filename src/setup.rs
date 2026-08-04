@@ -83,7 +83,7 @@ pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
     let imu_result = IcmBuilder::new_i2c(icm_i2c, Delay)
         .gyr_range(GyrRange::Dps2000)
         .gyr_unit(GyrUnit::Rps)
-        .gyr_dlp(GyrDlp::Hz51)
+        .gyr_dlp(GyrDlp::Hz361)
         .acc_range(AccRange::Gs8)
         .acc_unit(AccUnit::Mpss)
         .acc_dlp(AccDlp::Hz50)

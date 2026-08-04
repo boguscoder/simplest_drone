@@ -35,7 +35,8 @@ pub const SLOPE: f32 = THROTTLE_MAX - THROTTLE_MIN;
 pub const YAW_RATE: f32 = 200.0 * core::f32::consts::PI / 180.0;
 pub const MAX_LEAN_ANGLE: f32 = 45.0 * core::f32::consts::PI / 180.0;
 pub const ANGLE_P_GAIN: f32 = 5.0;
-pub const D_FILTER_CUTOFF_HZ: f32 = 50.0;
+pub const RATE_FILTER_CUTOFF_HZ: f32 = 100.0;
+pub const D_FILTER_CUTOFF_HZ: f32 = 40.0;
 pub const I_TERM_THROTTLE_LIMIT: f32 = 0.1;
 pub const AHRS_BETA: f32 = 0.05;
 
