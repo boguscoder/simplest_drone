@@ -74,7 +74,7 @@ pub enum RcError {
 
 fn change_state(state: &mut RcError, new_state: RcError) {
     if *state != new_state {
-        log::info!("RC state changed from {:?} to {:?}", state, new_state);
+        log::info!("RC error state changed from {:?} to {:?}", state, new_state);
         *state = new_state;
     }
 }

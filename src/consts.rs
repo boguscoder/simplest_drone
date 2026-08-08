@@ -66,5 +66,5 @@ pub const ALT_HOLD_THROTTLE_MAX: f32 = 0.50;
 
 // --- IMU ---
 pub const CALIBRATION_TICKS: usize = 2000;
-pub const ACC_OFFSET: Vector3<f32> = Vector3::new(-0.100000, -0.246035, 0.152372);
+pub const ACC_OFFSET: Vector3<f32> = Vector3::new(-0.05, -0.40, 0.05);
 pub const ACC_SCALE: Vector3<f32> = Vector3::new(0.993833, 0.998219, 0.990074);
