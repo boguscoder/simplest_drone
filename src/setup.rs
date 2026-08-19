@@ -136,10 +136,10 @@ pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
         device.motors.pio,
         crate::device::Irqs,
         //                // My ECS    // 'X' in PX4   // Place
-        device.motors.m1, // M4        // M1           // Front Right
-        device.motors.m2, // M1        // M2           // Back Left
-        device.motors.m3, // M2        // M3           // Front Left
-        device.motors.m4, // M3        // M4           // Back Right
+        device.motors.m4, // M4        // M1           // Front Right
+        device.motors.m1, // M1        // M2           // Back Left
+        device.motors.m2, // M2        // M3           // Front Left
+        device.motors.m3, // M3        // M4           // Back Right
         DshotSpeed::DShot600,
     )
 }

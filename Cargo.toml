@@ -4,10 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-default = ["feather"]
 logging = ["dep:embassy-usb", "dep:embassy-usb-logger"]
 telemetry = ["logging"]
-feather = []
 
 [dependencies]
 ahrs = { version = "0.7.0", default-features = false, features = ["field_access"] }
@@ -18,22 +16,23 @@ cortex-m-rt = "0.7.0"
 
 drone_consts = { path = "../drone_consts" }
 
-embassy-embedded-hal = "0.5.0"
+embassy-dshot = { version = "0.2.1", features = ["rp2350"] }
+embassy-embedded-hal = "0.6.0"
 embassy-executor = { version = "0.10.0", features = [ "executor-thread", "executor-interrupt", "platform-cortex-m"] }
-embassy-dshot = { version = "0.2.1", features = ["rp2040"] }
-embassy-rp = { version = "0.9.0", features = ["critical-section-impl", "time-driver", "rp2040"] }
-embassy-time = "0.5.1"
 embassy-futures = "0.1.2"
+embassy-rp = { version = "0.9.0", features = ["critical-section-impl", "time-driver", "rp235xa"] }
+embassy-sync = "0.8.0"
+embassy-time = "0.5.1"
 embassy-usb = {version = "0.6.0", optional = true }
 embassy-usb-logger = {version = "0.6.0", optional = true }
-embassy-sync = "0.7.0"
+
 embedded-hal-bus = "0.3.0"
 
 icm20948-async = { git = "https://github.com/peterkrull/icm20948-async" }
 
 log = "0.4.27"
 
-nalgebra = { version = "0.33.2", default-features = false, features = ["libm"] }
+nalgebra = { version = "0.33.2", default-features = false }
 
 panic-probe = "1.0.0"
 portable-atomic = { version = "1.11.1", features = ["critical-section"] }

@@ -1,9 +1,9 @@
 use crate::alt_hold::{ALT_HOLD_OFF_SIGNAL, ALT_HOLD_ON_SIGNAL};
 use crate::consts::{
     ALT_HOLD_THROTTLE_MAX, ALT_HOLD_THROTTLE_MIN, ALT_KD_MIN, ALT_KI_FIXED, ALT_KP_MIN,
-    ANGLE_P_GAIN, D_FILTER_CUTOFF_HZ, I_TERM_THROTTLE_LIMIT, KD_FIXED, KI_FIXED, KP_FIXED,
-    MAX_LEAN_ANGLE, MAX_POWER, PID_LIMIT_MAX, PID_LIMIT_MIN, RATE_FILTER_CUTOFF_HZ, SLOPE,
-    THROTTLE_MIN, YAW_KD_FIXED, YAW_KP_FIXED, YAW_RATE,
+    ANGLE_P_GAIN, I_TERM_THROTTLE_LIMIT, KD_FIXED, KI_FIXED, KP_FIXED, MAX_LEAN_ANGLE, MAX_POWER,
+    PID_LIMIT_MAX, PID_LIMIT_MIN, RATE_FILTER_CUTOFF_HZ, SLOPE, THROTTLE_MIN, YAW_KD_FIXED,
+    YAW_KP_FIXED, YAW_RATE,
 };
 use crate::{
     imu::ImuData,
@@ -85,7 +85,7 @@ impl MotorInput {
                 cycle_time,
                 pid_limits,
                 Some(RATE_FILTER_CUTOFF_HZ),
-                Some(D_FILTER_CUTOFF_HZ),
+                None,
             ),
             pid_pitch: Pid::new(
                 KP_FIXED,
@@ -94,7 +94,7 @@ impl MotorInput {
                 cycle_time,
                 pid_limits,
                 Some(RATE_FILTER_CUTOFF_HZ),
-                Some(D_FILTER_CUTOFF_HZ),
+                None,
             ),
             pid_yaw: Pid::new(
                 YAW_KP_FIXED,
