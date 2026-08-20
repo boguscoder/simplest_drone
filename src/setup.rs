@@ -1,4 +1,4 @@
-use crate::consts::{I2C_FREQ, IMU_I2C_ADDR, SBUS_BAUD, SYSTEM_FREQ};
+use crate::consts::{I2C_FREQ, IMU_I2C_ADDR, SBUS_BAUD};
 use crate::{baro, device::I2cPeripheral, imu, log_and_panic, rc};
 use bmp388_embedded::{
     Address, IirFilter, OutputDataRate, Oversampling, PowerMode, SensorConfig, r#async::Bmp388Async,
@@ -7,7 +7,6 @@ use embassy_dshot::{DshotPioTrait, DshotSpeed, rp::DshotPio};
 use embassy_embedded_hal::shared_bus::asynch::i2c::I2cDevice;
 use embassy_executor::{Executor, Spawner};
 use embassy_rp::{
-    clocks::{ClockConfig, CoreVoltage},
     config::Config,
     i2c,
     multicore::Stack,
@@ -31,11 +30,7 @@ pub type BaroReader = Bmp388Async<SharedI2cDevice, Delay>;
 pub type UartReader = UartRx<'static, uart::Async>;
 
 pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
-    let mut clock_cfg = ClockConfig::system_freq(SYSTEM_FREQ).unwrap();
-    clock_cfg.core_voltage = CoreVoltage::V1_15;
-    let mut config = Config::default();
-    config.clocks = clock_cfg;
-    let peripherals = embassy_rp::init(config);
+    let peripherals = embassy_rp::init(Config::default());
     let device = crate::device::Device::new(peripherals);
 
     #[cfg(feature = "logging")]
