@@ -1,11 +1,11 @@
 use nalgebra::Vector3;
 
 // --- System & Hardware ---
-pub const TICK_HZ: u64 = 1000;
+pub const TICK_HZ: u64 = 2000;
 pub const CYCLE_TIME: f32 = 1.0 / TICK_HZ as f32;
 pub const BARO_HZ: u64 = 50;
 pub const SBUS_BAUD: u32 = 100_000;
-pub const I2C_FREQ: u32 = 400_000;
+pub const I2C_FREQ: u32 = 1_000_000;
 pub const IMU_I2C_ADDR: u8 = 0x69;
 
 // --- Telemetry ---

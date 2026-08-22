@@ -1,1 +1,1 @@
-WIP for very basic rust firmware for quadcopter based on Pico Pi (ver 1)
+WIP for very basic rust firmware for quadcopter based on Pico Pi 2 (currently [Pimoroni Tiny 2350](https://shop.pimoroni.com/products/tiny-2350))
