@@ -19,8 +19,11 @@ use icm20948_async::{
 };
 use static_cell::StaticCell;
 
-#[cfg(feature = "logging")]
+#[cfg(feature = "telemetry")]
 use crate::usb;
+
+#[cfg(feature = "telemetry")]
+use crate::blackbox;
 
 pub type I2cHw = i2c::I2c<'static, I2cPeripheral, i2c::Async>;
 pub type SharedI2cBus = Mutex<CriticalSectionRawMutex, I2cHw>;
@@ -31,10 +34,20 @@ pub type UartReader = UartRx<'static, uart::Async>;
 
 pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
     let peripherals = embassy_rp::init(Config::default());
+
     let device = crate::device::Device::new(peripherals);
 
-    #[cfg(feature = "logging")]
-    spawner.spawn(usb::usb_setup(device.usb).unwrap());
+    #[cfg(feature = "telemetry")]
+    {
+        spawner.spawn(usb::usb_setup(device.usb).unwrap());
+        spawner.spawn(
+            blackbox::flash_logger_task(blackbox::FlashLogger::new(
+                device.flash.peri,
+                device.flash.dma,
+            ))
+            .unwrap(),
+        );
+    }
 
     // RC via SBUS setup //
     log::info!("// RC via SBUS setup //");

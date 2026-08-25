@@ -20,8 +20,12 @@ pub mod device_impl {
     pub type DshotPioM3Pin = super::peripherals::PIN_3;
     pub type DshotPioM4Pin = super::peripherals::PIN_4;
 
-    #[cfg(feature = "logging")]
+    #[cfg(feature = "telemetry")]
     pub type USBPeripheral = super::peripherals::USB;
+    #[cfg(feature = "telemetry")]
+    pub type FlashPeripheral = super::peripherals::FLASH;
+    #[cfg(feature = "telemetry")]
+    pub type FlashDmaChannel = super::peripherals::DMA_CH0;
 
     super::bind_interrupts!(pub struct Irqs {
         UART1_IRQ => super::UartHandler<SbusUartPeripheral>;
@@ -52,13 +56,21 @@ pub struct Dshot {
     pub m4: Peri<'static, DshotPioM1Pin>,
 }
 
+#[cfg(feature = "telemetry")]
+pub struct Flash {
+    pub peri: Peri<'static, FlashPeripheral>,
+    pub dma: Peri<'static, FlashDmaChannel>,
+}
+
 pub struct Device {
     pub core1: Peri<'static, Core1Peripheral>,
     pub rc: Sbus,
     pub imu: I2c,
     pub motors: Dshot,
-    #[cfg(feature = "logging")]
+    #[cfg(feature = "telemetry")]
     pub usb: Peri<'static, USBPeripheral>,
+    #[cfg(feature = "telemetry")]
+    pub flash: Flash,
 }
 
 impl Device {
@@ -82,9 +94,13 @@ impl Device {
                 m3: p.PIN_2,
                 m4: p.PIN_1,
             },
-
-            #[cfg(feature = "logging")]
+            #[cfg(feature = "telemetry")]
             usb: p.USB,
+            #[cfg(feature = "telemetry")]
+            flash: Flash {
+                peri: p.FLASH,
+                dma: p.DMA_CH0,
+            },
         }
     }
 }

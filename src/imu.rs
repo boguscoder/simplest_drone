@@ -1,6 +1,6 @@
 use crate::consts::{ACC_OFFSET, ACC_SCALE, CALIBRATION_TICKS, TICK_HZ};
-use crate::{arming::DISARMED, setup};
-use drone_consts::telemetry::Category;
+use crate::setup;
+use drone_consts::telemetry::*;
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, watch::Watch};
 use embassy_time::{Duration, Instant, Ticker, Timer};
 use nalgebra::Vector3;
@@ -37,13 +37,6 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
         let elapsed = now.duration_since(last_time);
         last_time = now;
         let dt = elapsed.as_micros() as f32 / 1_000_000.0;
-
-        if DISARMED.try_take().is_some() {
-            log::info!("Calibration reset requested");
-            calibration_ticks = 0;
-            gyr_bias = Vector3::zeros();
-            imu_sender.clear();
-        }
 
         if calibration_ticks == 0 {
             log::info!("Calibration...");

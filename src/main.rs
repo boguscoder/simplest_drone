@@ -9,6 +9,7 @@ mod alt_hold;
 mod arming;
 mod attitude;
 mod baro;
+mod cmd;
 mod consts;
 mod device;
 mod imu;
@@ -19,15 +20,18 @@ mod rc;
 mod setup;
 mod switch;
 
-#[cfg(feature = "logging")]
+#[cfg(feature = "telemetry")]
 mod usb;
+
+#[cfg(feature = "telemetry")]
+mod blackbox;
 
 use alt_estimator::AltitudeEstimator;
 use alt_hold::AltHold;
 use arming::Arming;
 use attitude::Attitude;
 use consts::{CYCLE_TIME, TICK_HZ};
-use drone_consts::telemetry::Category;
+use drone_consts::telemetry::*;
 use embassy_dshot::{Command, DshotPioTrait};
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Ticker};

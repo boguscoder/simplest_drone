@@ -9,15 +9,18 @@ pub type TeleChannel = embassy_sync::channel::Channel<
 >;
 
 #[cfg(feature = "telemetry")]
-pub static TELE_CHANNEL: TeleChannel = TeleChannel::new();
+pub static USB_CHANNEL: TeleChannel = TeleChannel::new();
+#[cfg(feature = "telemetry")]
+pub static BBOX_CHANNEL: TeleChannel = TeleChannel::new();
 
 #[macro_export]
 macro_rules! tele {
     ($cat:path, $($v:expr),+ $(,)?) => {
         #[cfg(feature = "telemetry")]
         {
+            use portable_atomic::Ordering;
             let current = Category::try_from(
-                $crate::telemetry::TELE_CATEGORY.load(portable_atomic::Ordering::Relaxed)
+                $crate::telemetry::TELE_CATEGORY.load(Ordering::Relaxed)
             ).unwrap_or(Category::None);
             if current == $cat {
                 let values = [$($v as f32),+];
@@ -28,7 +31,8 @@ macro_rules! tele {
                 for (i, v) in values.iter().take(n).enumerate() {
                     frame[2 + i * 4..6 + i * 4].copy_from_slice(&v.to_le_bytes());
                 }
-                let _ = $crate::telemetry::TELE_CHANNEL.try_send(frame);
+                let _ = $crate::telemetry::USB_CHANNEL.try_send(frame);
+                let _ = $crate::telemetry::BBOX_CHANNEL.try_send(frame);
             }
         }
         #[cfg(not(feature = "telemetry"))]

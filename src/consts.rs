@@ -15,6 +15,10 @@ pub mod tele_consts {
     pub const USB_PID: u16 = 0xbabe;
     pub const TELE_MAX_VALUES: usize = 9;
     pub const TELE_FRAME_SIZE: usize = 2 + TELE_MAX_VALUES * 4;
+    pub const FLASH_TELE_SIZE: usize = 1024 * 1024;
+    pub const FLASH_TOTAL_SIZE: usize = 2048 * 1024;
+    pub const BBOX_BUFFER_SIZE: usize = 475_000;
+    pub const BBOX_TELE_DIVISOR: usize = 4;
 }
 
 #[cfg(feature = "telemetry")]
@@ -65,5 +69,5 @@ pub const ALT_HOLD_THROTTLE_MAX: f32 = 0.50;
 
 // --- IMU ---
 pub const CALIBRATION_TICKS: usize = 2000;
-pub const ACC_OFFSET: Vector3<f32> = Vector3::new(-0.05, -0.40, 0.05);
+pub const ACC_OFFSET: Vector3<f32> = Vector3::new(0.04, -0.30, 0.05);
 pub const ACC_SCALE: Vector3<f32> = Vector3::new(0.993833, 0.998219, 0.990074);

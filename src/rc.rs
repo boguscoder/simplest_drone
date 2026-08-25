@@ -1,8 +1,7 @@
 use crate::consts::{ALT_KD_MAX, ALT_KD_MIN, ALT_KP_MAX, ALT_KP_MIN, RC_MAX, RC_MIN};
 use crate::setup;
-use drone_consts::telemetry::Category;
-use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
-use embassy_sync::watch::Watch;
+use drone_consts::telemetry::*;
+use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, watch::Watch};
 use embassy_time::{Duration, with_timeout};
 
 pub static RC_DATA: Watch<CriticalSectionRawMutex, RcData, 1> = Watch::new();

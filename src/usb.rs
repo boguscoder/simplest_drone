@@ -1,13 +1,20 @@
-#![cfg(feature = "logging")]
+#![cfg(feature = "telemetry")]
 
-use crate::consts::{USB_PID, USB_VID};
-use drone_consts::telemetry::Category;
+use crate::{
+    cmd,
+    consts::{USB_PID, USB_VID},
+    telemetry::USB_CHANNEL,
+};
 use embassy_futures::join::{join, join3};
-use embassy_rp::bind_interrupts;
-use embassy_rp::peripherals::USB;
-use embassy_rp::usb::{Driver, InterruptHandler};
-use embassy_usb::class::cdc_acm::{CdcAcmClass, Receiver, Sender, State};
-use embassy_usb::{Builder, Config};
+use embassy_rp::{
+    bind_interrupts,
+    peripherals::USB,
+    usb::{Driver, InterruptHandler},
+};
+use embassy_usb::{
+    class::cdc_acm::{CdcAcmClass, Receiver, Sender, State},
+    {Builder, Config},
+};
 use static_cell::StaticCell;
 
 bind_interrupts!(struct Irqs {
@@ -17,22 +24,6 @@ bind_interrupts!(struct Irqs {
 type UsbDriver = Driver<'static, USB>;
 type UsbDevice = embassy_usb::UsbDevice<'static, UsbDriver>;
 
-fn handle_data(data: &[u8]) {
-    #[cfg(feature = "telemetry")]
-    {
-        match Category::try_from(data[0]) {
-            Ok(cat) => {
-                crate::telemetry::TELE_CATEGORY
-                    .store(cat as u8, portable_atomic::Ordering::Relaxed);
-            }
-            Err(_) => {
-                crate::telemetry::TELE_CATEGORY
-                    .store(Category::None as u8, portable_atomic::Ordering::Relaxed);
-            }
-        }
-    }
-}
-
 async fn usb_log_task(class: CdcAcmClass<'static, UsbDriver>) {
     embassy_usb_logger::with_class!(1024, log::LevelFilter::Info, class).await
 }
@@ -40,7 +31,7 @@ async fn usb_log_task(class: CdcAcmClass<'static, UsbDriver>) {
 async fn usb_telemetry_task(mut sender: Sender<'static, UsbDriver>) {
     #[cfg(feature = "telemetry")]
     {
-        let receiver = crate::telemetry::TELE_CHANNEL.receiver();
+        let receiver = USB_CHANNEL.receiver();
         loop {
             sender.wait_connection().await;
             loop {
@@ -66,7 +57,7 @@ async fn usb_read_task(mut receiver: Receiver<'static, UsbDriver>) {
 
         while let Ok(count) = receiver.read_packet(&mut buf).await {
             if count > 0 {
-                handle_data(&buf[..count]);
+                cmd::process_payload(&buf[..count]);
             }
         }
     }
