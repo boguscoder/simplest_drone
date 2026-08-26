@@ -87,23 +87,17 @@ impl<'d> FlashLogger<'d> {
             return;
         }
 
-        let mut write_addr = data_flash_start;
-        let mut ram_offset = 0;
+        let chunks = self.ram_buffer[..bytes_to_write].chunks(PAGE_SIZE);
+        let addresses = (data_flash_start..).step_by(PAGE_SIZE);
 
-        while ram_offset < bytes_to_write {
-            let mut page_buf = [0u8; PAGE_SIZE];
-            let chunk_size = (bytes_to_write - ram_offset).min(PAGE_SIZE);
-
-            page_buf[..chunk_size]
-                .copy_from_slice(&self.ram_buffer[ram_offset..ram_offset + chunk_size]);
+        for (chunk, write_addr) in chunks.zip(addresses) {
+            let mut page_buf = [0xFF; PAGE_SIZE];
+            page_buf[..chunk.len()].copy_from_slice(chunk);
 
             if let Err(e) = self.flash.write(write_addr as u32, &page_buf).await {
                 log::error!("Flash write failed at offset 0x{:X}: {:?}", write_addr, e);
                 break;
             }
-
-            write_addr += PAGE_SIZE;
-            ram_offset += PAGE_SIZE;
         }
 
         let mut header_buf = [0u8; PAGE_SIZE];
