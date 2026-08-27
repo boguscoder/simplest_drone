@@ -10,8 +10,6 @@ impl SwitchingPolicy for AltHold {
     type SafetyContext = bool; // armed
 
     const NAME: &'static str = "ALT_HOLD";
-    const ON_TICKS: u64 = 10;
-    const OFF_TICKS: u64 = 10;
 
     const ON_SIGNAL: Option<&'static Signal<CriticalSectionRawMutex, ()>> =
         Some(&ALT_HOLD_ON_SIGNAL);

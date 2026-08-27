@@ -46,8 +46,8 @@ impl RcData {
         Self::normalize(self.0[7], RC_MIN, RC_MAX, 0.0, 1.0)
     }
 
-    pub fn unused(&self) -> f32 {
-        Self::normalize(self.0[8], RC_MIN, RC_MAX, 0.0, 1.0)
+    pub fn bbox_flush(&self) -> f32 {
+        Self::normalize(self.0[8], RC_MIN, RC_MAX, 0.0, 2.0)
     }
 
     fn normalize(
@@ -102,7 +102,7 @@ pub async fn rc_task(mut uart: setup::UartReader) -> ! {
                                 Category::Rc,
                                 rc_data.roll(), rc_data.pitch(), rc_data.throttle(),
                                 rc_data.yaw(), rc_data.kp_gain(), rc_data.kd_gain(),
-                                rc_data.arm_switch(), rc_data.altitude_switch(), rc_data.unused());
+                                rc_data.arm_switch(), rc_data.altitude_switch(), rc_data.bbox_flush());
 
                             rc_sender.send(rc_data);
                             continue;

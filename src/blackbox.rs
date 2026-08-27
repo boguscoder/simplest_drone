@@ -3,10 +3,12 @@ use crate::{
     consts::{
         BBOX_BUFFER_SIZE, BBOX_TELE_DIVISOR, FLASH_TELE_SIZE, FLASH_TOTAL_SIZE, TELE_FRAME_SIZE,
     },
+    rc::RcData,
+    switch::SwitchingPolicy,
     telemetry::{BBOX_CHANNEL, TELE_CATEGORY, USB_CHANNEL},
 };
 use drone_consts::telemetry::*;
-use embassy_futures::select::{Either, select};
+use embassy_futures::select::{Either3, select3};
 use embassy_rp::{
     Peri,
     dma::Channel,
@@ -17,7 +19,33 @@ use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal}
 use embedded_storage_async::nor_flash::NorFlash;
 use portable_atomic::Ordering;
 
+pub static FLUSH_SIGNAL: Signal<CriticalSectionRawMutex, ()> = Signal::new();
 pub static DUMP_SIGNAL: Signal<CriticalSectionRawMutex, ()> = Signal::new();
+
+pub struct BlackBoxSwitch;
+
+impl SwitchingPolicy for BlackBoxSwitch {
+    type SafetyContext = ();
+
+    const NAME: &'static str = "BBOX_FLUSH";
+
+    const ON_SIGNAL: Option<&'static Signal<CriticalSectionRawMutex, ()>> = Some(&FLUSH_SIGNAL);
+
+    #[inline(always)]
+    fn want_on(rc: &RcData) -> bool {
+        rc.bbox_flush() > 0.5
+    }
+
+    #[inline(always)]
+    fn want_off(rc: &RcData) -> bool {
+        !BlackBoxSwitch::want_on(rc)
+    }
+
+    #[inline(always)]
+    fn force_off(_rc: &RcData, _noop: ()) -> bool {
+        false
+    }
+}
 
 static mut RAM_BUFFER: [u8; BBOX_BUFFER_SIZE] = [0; BBOX_BUFFER_SIZE];
 
@@ -50,18 +78,20 @@ impl<'d> FlashLogger<'d> {
         self.ram_cursor = 0;
     }
 
-    pub fn cache_frame(&mut self, frame: &[u8]) {
+    pub fn cache_frame(&mut self, frame: &[u8]) -> bool {
         let end = self.ram_cursor + frame.len();
         if end > self.ram_buffer.len() {
-            return;
+            return false;
         }
 
         self.ram_buffer[self.ram_cursor..end].copy_from_slice(frame);
         self.ram_cursor = end;
+        true
     }
 
     pub async fn commit_to_flash(&mut self) {
         if self.ram_cursor == 0 {
+            log::warn!("Nothing to flush to flash");
             return;
         }
 
@@ -189,9 +219,11 @@ pub async fn flash_logger_task(mut logger: FlashLogger<'static>) {
     let receiver = BBOX_CHANNEL.receiver();
 
     loop {
-        match select(ARMED.wait(), DUMP_SIGNAL.wait()).await {
-            Either::First(()) => {
+        match select3(ARMED.wait(), DUMP_SIGNAL.wait(), FLUSH_SIGNAL.wait()).await {
+            Either3::First(()) => {
                 let _ = DUMP_SIGNAL.try_take();
+
+                log::info!("Started IMU dump to ring buffer in RAM");
 
                 logger.clear_cache();
 
@@ -199,25 +231,20 @@ pub async fn flash_logger_task(mut logger: FlashLogger<'static>) {
 
                 let mut frame_count = 0;
 
-                loop {
-                    match select(receiver.receive(), DISARMED.wait()).await {
-                        Either::First(frame) => {
-                            if (frame_count % BBOX_TELE_DIVISOR) == 0 {
-                                logger.cache_frame(&frame);
-                            }
-                            frame_count += 1;
-                        }
-                        Either::Second(()) => {
-                            log::info!("Will flush blackbox in 2s");
-                            embassy_time::Timer::after_secs(2).await;
-                            break;
-                        }
+                while !DISARMED.signaled() {
+                    let frame = receiver.receive().await;
+                    if frame_count % BBOX_TELE_DIVISOR == 0 && !logger.cache_frame(&frame) {
+                        log::info!("Stopped IMU dump, disarmed or out of memory");
+                        break;
                     }
+                    frame_count += 1;
                 }
-                logger.commit_to_flash().await;
             }
-            Either::Second(()) => {
+            Either3::Second(()) => {
                 logger.dump_to_channel().await;
+            }
+            Either3::Third(()) => {
+                logger.commit_to_flash().await;
             }
         }
     }

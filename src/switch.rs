@@ -8,8 +8,8 @@ pub trait SwitchingPolicy {
     fn want_off(rc: &RcData) -> bool;
     fn force_off(rc: &RcData, ctx: Self::SafetyContext) -> bool;
 
-    const ON_TICKS: u64;
-    const OFF_TICKS: u64;
+    const ON_TICKS: u64 = 10;
+    const OFF_TICKS: u64 = 10;
 
     const NAME: &'static str;
 

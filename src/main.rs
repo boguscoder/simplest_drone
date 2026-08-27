@@ -26,6 +26,9 @@ mod usb;
 #[cfg(feature = "telemetry")]
 mod blackbox;
 
+#[cfg(feature = "telemetry")]
+use blackbox::BlackBoxSwitch;
+
 use alt_estimator::AltitudeEstimator;
 use alt_hold::AltHold;
 use arming::Arming;
@@ -53,6 +56,9 @@ async fn main(spawner: Spawner) {
     let mut att_transformer = Attitude::new();
     let mut alt_estimator = AltitudeEstimator::new();
 
+    #[cfg(feature = "telemetry")]
+    let mut bbox = Switch::<BlackBoxSwitch>::new();
+
     const ZERO_RC: RcData = RcData::from_channels([0; 16]);
 
     loop {
@@ -63,6 +69,9 @@ async fn main(spawner: Spawner) {
         let rc_ref = rc.as_ref().unwrap_or(&ZERO_RC);
         arming.update(rc_ref, rc.is_some());
         alt_hold.update(rc_ref, arming.state() == SwitchState::Active);
+
+        #[cfg(feature = "telemetry")]
+        bbox.update(rc_ref, ());
 
         let throttle = if let (Some(imu), Some(rc), Some(baro_alt)) = (imu, rc, baro_alt) {
             att_transformer
