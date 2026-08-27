@@ -38,7 +38,7 @@ pub const SLOPE: f32 = THROTTLE_MAX - THROTTLE_MIN;
 pub const YAW_RATE: f32 = 200.0 * core::f32::consts::PI / 180.0;
 pub const MAX_LEAN_ANGLE: f32 = 45.0 * core::f32::consts::PI / 180.0;
 pub const ANGLE_P_GAIN: f32 = 5.0;
-pub const RATE_FILTER_CUTOFF_HZ: f32 = 75.0;
+pub const RATE_FILTER_CUTOFF_HZ: f32 = 100.0;
 pub const _D_FILTER_CUTOFF_HZ: f32 = 25.0;
 pub const I_TERM_THROTTLE_LIMIT: f32 = 0.1;
 pub const AHRS_BETA: f32 = 0.05;
@@ -69,5 +69,5 @@ pub const ALT_HOLD_THROTTLE_MAX: f32 = 0.50;
 
 // --- IMU ---
 pub const CALIBRATION_TICKS: usize = 2000;
-pub const ACC_OFFSET: Vector3<f32> = Vector3::new(0.14, -0.30, 0.05);
+pub const ACC_OFFSET: Vector3<f32> = Vector3::new(-0.02, 0.27, 0.05);
 pub const ACC_SCALE: Vector3<f32> = Vector3::new(0.993833, 0.998219, 0.990074);

@@ -38,11 +38,14 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
         last_time = now;
         let dt = elapsed.as_micros() as f32 / 1_000_000.0;
 
+        let gyr = Vector3::new(imudata.gyr[0], -imudata.gyr[1], -imudata.gyr[2]);
+        let acc = Vector3::new(imudata.acc[0], -imudata.acc[1], -imudata.acc[2]);
+
         if calibration_ticks == 0 {
             log::info!("Calibration...");
             calibration_ticks += 1;
         } else if calibration_ticks < CALIBRATION_TICKS {
-            gyr_bias += Vector3::from(imudata.gyr);
+            gyr_bias += gyr;
             calibration_ticks += 1;
         } else if calibration_ticks == CALIBRATION_TICKS {
             gyr_bias /= CALIBRATION_TICKS as f32;
@@ -63,8 +66,8 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
                 Vector3::<f32>::zeros()
             };
 
-            let corrected_gyr = Vector3::from(imudata.gyr) - gyr_bias;
-            let corrected_acc = (Vector3::from(imudata.acc) - ACC_OFFSET).component_mul(&ACC_SCALE);
+            let corrected_gyr = gyr - gyr_bias;
+            let corrected_acc = (acc - ACC_OFFSET).component_mul(&ACC_SCALE);
 
             #[rustfmt::skip]
             tele!(Category::Imu,
