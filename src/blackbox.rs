@@ -3,6 +3,8 @@ use crate::{
     consts::{
         BBOX_BUFFER_SIZE, BBOX_TELE_DIVISOR, FLASH_TELE_SIZE, FLASH_TOTAL_SIZE, TELE_FRAME_SIZE,
     },
+    device::FlashDmaChannel,
+    device::Irqs,
     rc::RcData,
     switch::SwitchingPolicy,
     telemetry::{BBOX_CHANNEL, TELE_CATEGORY, USB_CHANNEL},
@@ -11,7 +13,6 @@ use drone_consts::telemetry::*;
 use embassy_futures::select::{Either3, select3};
 use embassy_rp::{
     Peri,
-    dma::Channel,
     flash::{Async, ERASE_SIZE, Flash, PAGE_SIZE},
     peripherals::FLASH,
 };
@@ -61,11 +62,11 @@ pub struct FlashLogger<'d> {
 }
 
 impl<'d> FlashLogger<'d> {
-    pub fn new(flash: Peri<'d, FLASH>, dma: Peri<'d, impl Channel>) -> Self {
+    pub fn new(flash: Peri<'d, FLASH>, dma: Peri<'d, FlashDmaChannel>) -> Self {
         let flash_base = 0x10000000;
         let binary_end = unsafe { &__end_block_addr as *const u8 as usize };
         let flash_tele_start = ((binary_end - flash_base) + (ERASE_SIZE - 1)) & !(ERASE_SIZE - 1);
-        let flash = Flash::new(flash, dma);
+        let flash = Flash::new(flash, dma, Irqs);
         Self {
             flash,
             flash_offset: flash_tele_start,
@@ -221,13 +222,26 @@ pub async fn flash_logger_task(mut logger: FlashLogger<'static>) {
     loop {
         match select3(ARMED.wait(), DUMP_SIGNAL.wait(), FLUSH_SIGNAL.wait()).await {
             Either3::First(()) => {
-                let _ = DUMP_SIGNAL.try_take();
+                DUMP_SIGNAL.try_take();
+                FLUSH_SIGNAL.try_take();
+                DISARMED.try_take();
 
-                log::info!("Started IMU dump to ring buffer in RAM");
+                log::info!("Starting IMU dump to ring buffer in RAM");
 
                 logger.clear_cache();
 
-                TELE_CATEGORY.store(Category::Imu as u8, Ordering::Relaxed);
+                if TELE_CATEGORY
+                    .compare_exchange(
+                        Category::None as u8,
+                        Category::Imu as u8,
+                        Ordering::Acquire,
+                        Ordering::Relaxed,
+                    )
+                    .is_err()
+                {
+                    log::warn!("Telemetry tool seems to be ON, pick None and rearm to record IMU");
+                    continue;
+                }
 
                 let mut frame_count = 0;
 
@@ -239,6 +253,8 @@ pub async fn flash_logger_task(mut logger: FlashLogger<'static>) {
                     }
                     frame_count += 1;
                 }
+
+                TELE_CATEGORY.store(Category::None as u8, Ordering::Release);
             }
             Either3::Second(()) => {
                 logger.dump_to_channel().await;

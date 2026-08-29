@@ -15,7 +15,7 @@ cortex-m-rt = "0.7.0"
 
 drone_consts = { path = "../drone_consts" }
 
-embassy-dshot = { version = "0.2.1", features = ["rp2350"] }
+embassy-dshot = { version = "0.3.0", features = ["rp2350"] }
 embassy-embedded-hal = "0.6.0"
 embassy-executor = { version = "0.10.0", features = [ 
     "executor-thread", 
@@ -23,7 +23,7 @@ embassy-executor = { version = "0.10.0", features = [
     "platform-cortex-m"
 ] }
 embassy-futures = "0.1.2"
-embassy-rp = { version = "0.9.0", features = [
+embassy-rp = { version = "0.10.0", features = [
     "critical-section-impl", 
     "time-driver", 
     "rp235xa", 

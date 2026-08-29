@@ -31,6 +31,11 @@ pub mod device_impl {
         UART1_IRQ => super::UartHandler<SbusUartPeripheral>;
         PIO0_IRQ_0 => super::PioHandler<DshotPioPeripheral>;
         I2C0_IRQ => super::I2CHandler<I2cPeripheral>;
+        #[cfg(not(feature = "telemetry"))]
+        DMA_IRQ_0 => embassy_rp::dma::InterruptHandler<SbusDmaChannel>;
+        #[cfg(feature = "telemetry")]
+        DMA_IRQ_0 => embassy_rp::dma::InterruptHandler<FlashDmaChannel>, embassy_rp::dma::InterruptHandler<SbusDmaChannel>;
+
     });
 }
 
