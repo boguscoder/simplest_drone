@@ -79,7 +79,7 @@ async fn main(spawner: Spawner) {
                 .map(|quat| {
                     let alt = alt_estimator.update(&quat, &imu, baro_alt);
                     let att: [f32; 3] = quat.euler_angles().into();
-                    tele!(Category::Attitude, att[0], att[1], att[2], alt);
+                    tele!(Mode::Attitude, att[0], att[1], att[2], alt);
 
                     motor.update(
                         &rc,

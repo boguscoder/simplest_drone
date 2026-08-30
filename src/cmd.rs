@@ -1,6 +1,6 @@
 #![cfg(feature = "telemetry")]
 
-use crate::{blackbox, telemetry::TELE_CATEGORY};
+use crate::{blackbox, telemetry::TELE_MODE};
 use drone_consts::telemetry::*;
 use portable_atomic::Ordering;
 
@@ -9,10 +9,14 @@ pub fn process_payload(data: &[u8]) {
         return;
     }
 
-    if let Ok(category) = Category::try_from(data[0]) {
-        if category == Category::Dump {
-            blackbox::DUMP_SIGNAL.signal(());
+    if let Ok(cmd) = Command::try_from(data[0]) {
+        match cmd {
+            Command::SetTelemetryMode(category) => {
+                TELE_MODE.store(category as u8, Ordering::Relaxed);
+            }
+            Command::DumpFlash => {
+                blackbox::DUMP_SIGNAL.signal(());
+            }
         }
-        TELE_CATEGORY.store(category as u8, Ordering::Relaxed);
     }
 }

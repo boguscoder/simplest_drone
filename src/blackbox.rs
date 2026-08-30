@@ -7,7 +7,7 @@ use crate::{
     device::Irqs,
     rc::RcData,
     switch::SwitchingPolicy,
-    telemetry::{BBOX_CHANNEL, TELE_CATEGORY, USB_CHANNEL},
+    telemetry::{BBOX_CHANNEL, TELE_MODE, USB_CHANNEL},
 };
 use drone_consts::telemetry::*;
 use embassy_futures::select::{Either3, select3};
@@ -230,10 +230,10 @@ pub async fn flash_logger_task(mut logger: FlashLogger<'static>) {
 
                 logger.clear_cache();
 
-                if TELE_CATEGORY
+                if TELE_MODE
                     .compare_exchange(
-                        Category::None as u8,
-                        Category::Imu as u8,
+                        Mode::None as u8,
+                        Mode::Imu as u8,
                         Ordering::Acquire,
                         Ordering::Relaxed,
                     )
@@ -254,7 +254,7 @@ pub async fn flash_logger_task(mut logger: FlashLogger<'static>) {
                     frame_count += 1;
                 }
 
-                TELE_CATEGORY.store(Category::None as u8, Ordering::Release);
+                TELE_MODE.store(Mode::None as u8, Ordering::Release);
             }
             Either3::Second(()) => {
                 logger.dump_to_channel().await;

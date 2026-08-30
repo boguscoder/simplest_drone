@@ -70,7 +70,7 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
             let corrected_acc = (acc - ACC_OFFSET).component_mul(&ACC_SCALE);
 
             #[rustfmt::skip]
-            tele!(Category::Imu,
+            tele!(Mode::Imu,
                 corrected_gyr[0], corrected_gyr[1], corrected_gyr[2],
                 corrected_acc[0], corrected_acc[1], corrected_acc[2]);
 

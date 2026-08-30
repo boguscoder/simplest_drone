@@ -48,7 +48,7 @@ pub async fn baro_task(mut baro: setup::BaroReader) -> ! {
             }
         };
 
-        tele!(Category::Baro, relative_alt);
+        tele!(Mode::Baro, relative_alt);
         alt_sender.send(relative_alt);
         loop_ticker.next().await;
     }

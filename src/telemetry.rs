@@ -1,5 +1,5 @@
 #[cfg(feature = "telemetry")]
-pub static TELE_CATEGORY: portable_atomic::AtomicU8 = portable_atomic::AtomicU8::new(0);
+pub static TELE_MODE: portable_atomic::AtomicU8 = portable_atomic::AtomicU8::new(0);
 
 #[cfg(feature = "telemetry")]
 pub type TeleChannel = embassy_sync::channel::Channel<
@@ -19,9 +19,9 @@ macro_rules! tele {
         #[cfg(feature = "telemetry")]
         {
             use portable_atomic::Ordering;
-            let current = Category::try_from(
-                $crate::telemetry::TELE_CATEGORY.load(Ordering::Relaxed)
-            ).unwrap_or(Category::None);
+            let current = Mode::try_from(
+                $crate::telemetry::TELE_MODE.load(Ordering::Relaxed)
+            ).unwrap_or(Mode::None);
             if current == $cat {
                 let values = [$($v as f32),+];
                 let n = values.len().min($crate::consts::TELE_MAX_VALUES);

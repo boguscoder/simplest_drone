@@ -32,7 +32,7 @@ fn inputs_to_throttle(
     ];
 
     tele!(
-        Category::Mix,
+        Mode::Mix,
         mixed_vals[0],
         mixed_vals[1],
         mixed_vals[2],
@@ -51,7 +51,7 @@ fn inputs_to_throttle(
     };
 
     tele!(
-        Category::Dshot,
+        Mode::Dshot,
         throttle_vals[0],
         throttle_vals[1],
         throttle_vals[2],
@@ -182,7 +182,7 @@ impl MotorInput {
         let pid_yaw = self.pid_yaw.update(rc_data.yaw() * YAW_RATE, -imu.gyro[2]);
 
         tele!(
-            Category::Pid,
+            Mode::Pid,
             pid_roll,
             pid_pitch,
             pid_yaw,
