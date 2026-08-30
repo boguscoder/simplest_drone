@@ -3,11 +3,11 @@ use crate::consts::{
     ALT_HOLD_THROTTLE_MAX, ALT_HOLD_THROTTLE_MIN, ALT_KD_MIN, ALT_KI_FIXED, ALT_KP_MIN,
     ANGLE_P_GAIN, I_TERM_THROTTLE_LIMIT, KD_FIXED, KI_FIXED, KP_FIXED, MAX_LEAN_ANGLE, MAX_POWER,
     PID_LIMIT_MAX, PID_LIMIT_MIN, RATE_FILTER_CUTOFF_HZ, SLOPE, THROTTLE_MIN, YAW_KD_FIXED,
-    YAW_KP_FIXED, YAW_RATE,
+    YAW_KI_FIXED, YAW_KP_FIXED, YAW_RATE,
 };
 use crate::{
     imu::ImuData,
-    pid::{self, Pid},
+    pid::{Limits, Pid},
     rc::RcData,
 };
 use drone_consts::telemetry::*;
@@ -72,7 +72,7 @@ pub struct MotorInput {
 
 impl MotorInput {
     pub fn new(cycle_time: f32) -> MotorInput {
-        let pid_limits = Some(pid::Limits {
+        let pid_limits = Some(Limits {
             min: PID_LIMIT_MIN,
             max: PID_LIMIT_MAX,
         });
@@ -98,7 +98,7 @@ impl MotorInput {
             ),
             pid_yaw: Pid::new(
                 YAW_KP_FIXED,
-                KI_FIXED,
+                YAW_KI_FIXED,
                 YAW_KD_FIXED,
                 cycle_time,
                 pid_limits,

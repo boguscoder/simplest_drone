@@ -44,6 +44,7 @@ pub const I_TERM_THROTTLE_LIMIT: f32 = 0.1;
 pub const AHRS_BETA: f32 = 0.05;
 
 pub const YAW_KP_FIXED: f32 = 0.08;
+pub const YAW_KI_FIXED: f32 = 50.0;
 pub const YAW_KD_FIXED: f32 = 0.0;
 
 pub const _KP_MIN: f32 = 0.05;
@@ -56,8 +57,8 @@ pub const KI_FIXED: f32 = 0.12;
 
 pub const KD_FIXED: f32 = 0.001;
 
-pub const PID_LIMIT_MIN: f32 = -0.2;
-pub const PID_LIMIT_MAX: f32 = 0.2;
+pub const PID_LIMIT_MIN: f32 = -0.4;
+pub const PID_LIMIT_MAX: f32 = 0.4;
 
 pub const ALT_KP_MIN: f32 = 0.0;
 pub const ALT_KP_MAX: f32 = 0.5;

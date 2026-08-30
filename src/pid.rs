@@ -1,32 +1,12 @@
+use signal_filters::{Pt2Filterf32, SignalFilter};
+
 #[derive(Copy, Clone)]
 pub struct Limits {
     pub min: f32,
     pub max: f32,
 }
 
-struct LowPassFilter {
-    alpha: f32,
-    prev1: f32,
-    prev2: f32,
-}
-
-impl LowPassFilter {
-    fn new(freq: f32, cycle_time: f32) -> LowPassFilter {
-        LowPassFilter {
-            alpha: {
-                let rc_constant = 1.0 / (2.0 * core::f32::consts::PI * freq);
-                cycle_time / (rc_constant + cycle_time)
-            },
-            prev1: 0.0,
-            prev2: 0.0,
-        }
-    }
-    fn filter(&mut self, input: f32) -> f32 {
-        self.prev1 = self.prev1 + self.alpha * (input - self.prev1);
-        self.prev2 = self.prev2 + self.alpha * (self.prev1 - self.prev2);
-        self.prev2
-    }
-}
+type LowPassFilter = Pt2Filterf32;
 
 pub struct Pid {
     pub kp: f32,
@@ -52,9 +32,16 @@ impl Pid {
         rate_filter_cutoff_hz: Option<f32>,
         d_filter_cutoff_hz: Option<f32>,
     ) -> Pid {
-        let rate_lp = rate_filter_cutoff_hz.map(|freq| LowPassFilter::new(freq, cycle_time));
-        let d_lp: Option<LowPassFilter> =
-            d_filter_cutoff_hz.map(|freq| LowPassFilter::new(freq, cycle_time));
+        let rate_lp = rate_filter_cutoff_hz.map(|freq| {
+            let mut lp = LowPassFilter::new();
+            lp.set_cutoff_frequency(freq, cycle_time);
+            lp
+        });
+        let d_lp: Option<LowPassFilter> = d_filter_cutoff_hz.map(|freq| {
+            let mut lp = LowPassFilter::new();
+            lp.set_cutoff_frequency(freq, cycle_time);
+            lp
+        });
 
         Pid {
             kp,
@@ -73,7 +60,7 @@ impl Pid {
 
     pub fn update(&mut self, desired_rate: f32, mut measured_rate: f32) -> f32 {
         if let Some(filter) = &mut self.rate_lp {
-            measured_rate = filter.filter(measured_rate);
+            measured_rate = filter.update(measured_rate);
         }
 
         let error_rate = desired_rate - measured_rate;
@@ -86,7 +73,7 @@ impl Pid {
         let mut d = -self.kd * (measured_rate - self.measured_rate) / self.cycle_time;
 
         if let Some(filter) = &mut self.d_lp {
-            d = filter.filter(d);
+            d = filter.update(d);
         }
 
         // state store

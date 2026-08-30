@@ -15,6 +15,7 @@ pub fn process_payload(data: &[u8]) {
                 TELE_MODE.store(category as u8, Ordering::Relaxed);
             }
             Command::DumpFlash => {
+                TELE_MODE.store(Mode::None as u8, Ordering::Release);
                 blackbox::DUMP_SIGNAL.signal(());
             }
         }

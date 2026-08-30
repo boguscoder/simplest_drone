@@ -46,6 +46,7 @@ panic-probe = "1.0.0"
 portable-atomic = { version = "1.11.1", features = ["critical-section"] }
 
 sbus = { git = "https://github.com/peterkrull/sbus" }
+signal-filters = "0.1.10"
 static_cell = "2.0"
 
 [profile.dev]
