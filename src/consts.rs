@@ -43,10 +43,6 @@ pub const _D_FILTER_CUTOFF_HZ: f32 = 25.0;
 pub const I_TERM_THROTTLE_LIMIT: f32 = 0.1;
 pub const AHRS_BETA: f32 = 0.05;
 
-pub const YAW_KP_FIXED: f32 = 0.08;
-pub const YAW_KI_FIXED: f32 = 50.0;
-pub const YAW_KD_FIXED: f32 = 0.0;
-
 pub const _KP_MIN: f32 = 0.05;
 pub const _KP_MAX: f32 = 0.25;
 pub const KP_FIXED: f32 = 0.065;
@@ -56,6 +52,10 @@ pub const _KI_MAX: f32 = 0.15;
 pub const KI_FIXED: f32 = 0.12;
 
 pub const KD_FIXED: f32 = 0.001;
+
+pub const YAW_KP_FIXED: f32 = 0.08;
+pub const YAW_KI_FIXED: f32 = KI_FIXED;
+pub const YAW_KD_FIXED: f32 = 0.0;
 
 pub const PID_LIMIT_MIN: f32 = -0.4;
 pub const PID_LIMIT_MAX: f32 = 0.4;
