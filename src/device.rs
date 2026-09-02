@@ -94,6 +94,7 @@ impl Device {
             },
             motors: Dshot {
                 pio: p.PIO0,
+                // 4-in-1 ESC pins mapped to MCU via breakout board
                 m1: p.PIN_4,
                 m2: p.PIN_3,
                 m3: p.PIN_2,
