@@ -18,7 +18,6 @@ pub struct Pid {
     cycle_time: f32,
     limit_i: f32,
     limit_pid: Option<Limits>,
-    rate_lp: Option<LowPassFilter>,
     d_lp: Option<LowPassFilter>,
 }
 
@@ -29,14 +28,8 @@ impl Pid {
         kd: f32,
         cycle_time: f32,
         limit_pid: Option<Limits>,
-        rate_filter_cutoff_hz: Option<f32>,
         d_filter_cutoff_hz: Option<f32>,
     ) -> Pid {
-        let rate_lp = rate_filter_cutoff_hz.map(|freq| {
-            let mut lp = LowPassFilter::new();
-            lp.set_cutoff_frequency(freq, cycle_time);
-            lp
-        });
         let d_lp: Option<LowPassFilter> = d_filter_cutoff_hz.map(|freq| {
             let mut lp = LowPassFilter::new();
             lp.set_cutoff_frequency(freq, cycle_time);
@@ -53,16 +46,11 @@ impl Pid {
             cycle_time,
             limit_i: 0.5,
             limit_pid,
-            rate_lp,
             d_lp,
         }
     }
 
-    pub fn update(&mut self, desired_rate: f32, mut measured_rate: f32) -> f32 {
-        if let Some(filter) = &mut self.rate_lp {
-            measured_rate = filter.update(measured_rate);
-        }
-
+    pub fn update(&mut self, desired_rate: f32, measured_rate: f32) -> f32 {
         let error_rate = desired_rate - measured_rate;
         // P term
         let p = error_rate * self.kp;

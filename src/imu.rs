@@ -1,9 +1,12 @@
-use crate::consts::{ACC_OFFSET, ACC_SCALE, CALIBRATION_TICKS, TICK_HZ};
+use crate::consts::{
+    ACC_OFFSET, ACC_SCALE, CALIBRATION_TICKS, CYCLE_TIME, RATE_FILTER_CUTOFF_HZ, TICK_HZ,
+};
 use crate::setup;
 use drone_consts::telemetry::*;
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, watch::Watch};
 use embassy_time::{Duration, Instant, Ticker, Timer};
 use nalgebra::Vector3;
+use signal_filters::{Pt2Filterf32, SignalFilter};
 
 #[derive(Clone)]
 pub struct ImuData {
@@ -23,6 +26,12 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
     let mut calibration_ticks: usize = 0;
     let mut total_ticks: usize = 0;
     let mut gyr_bias: Vector3<f32> = Vector3::zeros();
+    let mut gyro_fx = Pt2Filterf32::new();
+    let mut gyro_fy = Pt2Filterf32::new();
+    let mut gyro_fz = Pt2Filterf32::new();
+    gyro_fx.set_cutoff_frequency(RATE_FILTER_CUTOFF_HZ, CYCLE_TIME);
+    gyro_fy.set_cutoff_frequency(RATE_FILTER_CUTOFF_HZ, CYCLE_TIME);
+    gyro_fz.set_cutoff_frequency(RATE_FILTER_CUTOFF_HZ, CYCLE_TIME);
 
     let imu_sender = IMU_DATA.sender();
     let mut last_time = Instant::now();
@@ -68,14 +77,19 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
 
             let corrected_gyr = gyr - gyr_bias;
             let corrected_acc = (acc - ACC_OFFSET).component_mul(&ACC_SCALE);
+            let filtered_gyr = Vector3::new(
+                gyro_fx.update(corrected_gyr[0]),
+                gyro_fy.update(corrected_gyr[1]),
+                gyro_fz.update(corrected_gyr[2]),
+            );
 
             #[rustfmt::skip]
             tele!(Mode::Imu,
-                corrected_gyr[0], corrected_gyr[1], corrected_gyr[2],
+                filtered_gyr[0], filtered_gyr[1], filtered_gyr[2],
                 corrected_acc[0], corrected_acc[1], corrected_acc[2]);
 
             imu_sender.send(ImuData {
-                gyro: corrected_gyr,
+                gyro: filtered_gyr,
                 acc: corrected_acc,
                 mag,
                 dt,
