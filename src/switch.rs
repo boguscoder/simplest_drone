@@ -1,5 +1,8 @@
-use crate::rc::RcData;
-use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal};
+use crate::{consts::SWITCH_FOLLOWERS, rc::RcData};
+use embassy_sync::{
+    blocking_mutex::raw::CriticalSectionRawMutex,
+    watch::{Receiver, Watch},
+};
 
 pub trait SwitchingPolicy {
     type SafetyContext;
@@ -13,9 +16,16 @@ pub trait SwitchingPolicy {
 
     const NAME: &'static str;
 
-    const ON_SIGNAL: Option<&'static Signal<CriticalSectionRawMutex, ()>> = None;
-    const OFF_SIGNAL: Option<&'static Signal<CriticalSectionRawMutex, ()>> = None;
+    const STATE: &'static SwitchWatch;
+
+    fn subscriber() -> Subscriber
+    where
+        Self: Sized,
+    {
+        Subscriber::new(Self::STATE)
+    }
 }
+
 use core::marker::PhantomData;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -23,6 +33,8 @@ pub enum SwitchState {
     Inactive,
     Active,
 }
+
+pub type SwitchWatch = Watch<CriticalSectionRawMutex, SwitchState, SWITCH_FOLLOWERS>;
 
 pub struct Switch<P: SwitchingPolicy> {
     state: SwitchState,
@@ -77,22 +89,17 @@ impl<P: SwitchingPolicy> Switch<P> {
     fn transition_to(&mut self, next_state: SwitchState, forced: bool) {
         self.state = next_state;
         self.ticks = 0;
+        P::STATE.sender().send(next_state);
 
         match next_state {
             SwitchState::Active => {
                 log::info!("[MODE] {} ENABLED", P::NAME);
-                if let Some(signal) = P::ON_SIGNAL {
-                    signal.signal(());
-                }
             }
             SwitchState::Inactive => {
                 if forced {
-                    log::warn!("[MODE] {} FORCE DISENGAGED (Failsafe)", P::NAME);
+                    log::warn!("[MODE] {} FORCE DISENGAGED", P::NAME);
                 } else {
                     log::info!("[MODE] {} DISABLED", P::NAME);
-                }
-                if let Some(signal) = P::OFF_SIGNAL {
-                    signal.signal(());
                 }
             }
         }
@@ -101,5 +108,55 @@ impl<P: SwitchingPolicy> Switch<P> {
     #[inline(always)]
     pub fn state(&self) -> SwitchState {
         self.state
+    }
+}
+
+pub struct Subscriber {
+    rx: Receiver<'static, CriticalSectionRawMutex, SwitchState, SWITCH_FOLLOWERS>,
+    last: SwitchState,
+    announced: bool,
+}
+
+impl Subscriber {
+    pub fn new(watch: &'static SwitchWatch) -> Self {
+        let current = watch.try_get().unwrap_or(SwitchState::Inactive);
+        watch
+            .receiver()
+            .map(|rx| Self {
+                rx,
+                last: current,
+                announced: false,
+            })
+            .expect("switch subscriber slots exhausted")
+    }
+
+    fn drain(&mut self) {
+        if let Some(state) = self.rx.try_changed() {
+            self.last = state;
+        }
+    }
+
+    pub fn is_on(&mut self) -> bool {
+        self.drain();
+        self.last == SwitchState::Active
+    }
+
+    pub fn turned_on(&mut self) -> bool {
+        self.drain();
+        let edge = self.last == SwitchState::Active && !self.announced;
+        self.announced = self.last == SwitchState::Active;
+        edge
+    }
+
+    #[cfg(feature = "telemetry")]
+    pub async fn wait_on(&mut self) {
+        loop {
+            let state = self.rx.changed().await;
+            self.last = state;
+            if state == SwitchState::Active {
+                self.announced = true;
+                return;
+            }
+        }
     }
 }

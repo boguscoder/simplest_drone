@@ -1,4 +1,4 @@
-use crate::alt_hold::{ALT_HOLD_OFF_SIGNAL, ALT_HOLD_ON_SIGNAL};
+use crate::alt_hold::AltHold;
 use crate::consts::{
     ALT_HOLD_THROTTLE_MAX, ALT_HOLD_THROTTLE_MIN, ALT_KD_MIN, ALT_KI_FIXED, ALT_KP_MIN,
     ANGLE_P_GAIN, I_TERM_THROTTLE_LIMIT, KD_FIXED, KI_FIXED, KP_FIXED, MAX_LEAN_ANGLE, MAX_POWER,
@@ -9,6 +9,7 @@ use crate::{
     imu::ImuData,
     pid::{Limits, Pid},
     rc::RcData,
+    switch::{Subscriber, SwitchingPolicy},
 };
 use drone_consts::telemetry::*;
 
@@ -68,6 +69,7 @@ pub struct MotorInput {
     pid_alt: Pid,
     target_alt: f32,
     hover_throttle: f32,
+    alt_hold: Subscriber,
 }
 
 impl MotorInput {
@@ -112,6 +114,7 @@ impl MotorInput {
             ),
             target_alt: 0.0,
             hover_throttle: 0.0,
+            alt_hold: AltHold::subscriber(),
         }
     }
 
@@ -122,7 +125,6 @@ impl MotorInput {
         att: &[f32; 3],
         alt: f32,
         is_armed: bool,
-        alt_hold: bool,
     ) -> [u16; 4] {
         self.pid_alt.kp = rc_data.kp_gain();
         self.pid_alt.kd = rc_data.kd_gain();
@@ -133,13 +135,14 @@ impl MotorInput {
             self.pid_roll.i = 0.0;
             self.pid_pitch.i = 0.0;
             self.pid_yaw.i = 0.0;
-
-            if !alt_hold {
-                self.pid_alt.i = 0.0;
-            }
+            self.pid_alt.i = 0.0;
         }
 
-        if ALT_HOLD_ON_SIGNAL.try_take().is_some() {
+        if !self.alt_hold.is_on() {
+            self.pid_alt.i = 0.0;
+        }
+
+        if self.alt_hold.turned_on() {
             self.target_alt = alt;
             self.hover_throttle = rc_data
                 .throttle()
@@ -152,12 +155,8 @@ impl MotorInput {
             );
         }
 
-        if ALT_HOLD_OFF_SIGNAL.try_take().is_some() {
-            self.pid_alt.i = 0.0;
-        }
-
         let mut pid_alt = 0.0;
-        let throttle = if alt_hold {
+        let throttle = if self.alt_hold.is_on() {
             let alt_error = self.target_alt - alt;
             pid_alt = self.pid_alt.update(alt_error, alt);
             (self.hover_throttle + pid_alt).clamp(0.0, MAX_POWER)

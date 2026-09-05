@@ -1,8 +1,10 @@
-use crate::{consts::ALT_HOLD_THROTTLE_MIN, rc::RcData, switch::SwitchingPolicy};
-use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal};
+use crate::{
+    consts::ALT_HOLD_THROTTLE_MIN,
+    rc::RcData,
+    switch::{SwitchWatch, SwitchingPolicy},
+};
 
-pub static ALT_HOLD_ON_SIGNAL: Signal<CriticalSectionRawMutex, ()> = Signal::new();
-pub static ALT_HOLD_OFF_SIGNAL: Signal<CriticalSectionRawMutex, ()> = Signal::new();
+static ALT_HOLD_STATE: SwitchWatch = SwitchWatch::new();
 
 pub struct AltHold;
 
@@ -11,10 +13,7 @@ impl SwitchingPolicy for AltHold {
 
     const NAME: &'static str = "ALT_HOLD";
 
-    const ON_SIGNAL: Option<&'static Signal<CriticalSectionRawMutex, ()>> =
-        Some(&ALT_HOLD_ON_SIGNAL);
-    const OFF_SIGNAL: Option<&'static Signal<CriticalSectionRawMutex, ()>> =
-        Some(&ALT_HOLD_OFF_SIGNAL);
+    const STATE: &'static SwitchWatch = &ALT_HOLD_STATE;
 
     #[inline(always)]
     fn want_on(rc: &RcData) -> bool {

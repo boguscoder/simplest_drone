@@ -87,7 +87,6 @@ async fn main(spawner: Spawner) {
                         &att,
                         alt,
                         arming.state() == SwitchState::Active,
-                        alt_hold.state() == SwitchState::Active,
                     )
                 })
         } else {

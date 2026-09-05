@@ -1,12 +1,10 @@
 use crate::rc::RcData;
 use crate::{
     consts::{ARM_HOLD_TICKS, DISARM_HOLD_TICKS},
-    switch::SwitchingPolicy,
+    switch::{SwitchWatch, SwitchingPolicy},
 };
-use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal};
 
-pub static DISARMED: Signal<CriticalSectionRawMutex, ()> = Signal::new();
-pub static ARMED: Signal<CriticalSectionRawMutex, ()> = Signal::new();
+static ARMING_STATE: SwitchWatch = SwitchWatch::new();
 
 pub struct Arming;
 
@@ -17,8 +15,7 @@ impl SwitchingPolicy for Arming {
     const ON_TICKS: u64 = ARM_HOLD_TICKS;
     const OFF_TICKS: u64 = DISARM_HOLD_TICKS;
 
-    const ON_SIGNAL: Option<&'static Signal<CriticalSectionRawMutex, ()>> = Some(&ARMED);
-    const OFF_SIGNAL: Option<&'static Signal<CriticalSectionRawMutex, ()>> = Some(&DISARMED);
+    const STATE: &'static SwitchWatch = &ARMING_STATE;
 
     #[inline(always)]
     fn want_on(rc: &RcData) -> bool {

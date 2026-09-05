@@ -29,6 +29,7 @@ pub const RC_MIN: u16 = 240;
 pub const RC_MAX: u16 = 1807;
 pub const ARM_HOLD_TICKS: u64 = 1000;
 pub const DISARM_HOLD_TICKS: u64 = 100;
+pub const SWITCH_FOLLOWERS: usize = 2;
 
 // --- Tuning ---
 pub const MAX_POWER: f32 = 0.4;

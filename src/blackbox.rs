@@ -1,12 +1,12 @@
 use crate::{
-    arming::{ARMED, DISARMED},
+    arming::Arming,
     consts::{
         BBOX_BUFFER_SIZE, BBOX_TELE_DIVISOR, FLASH_TELE_SIZE, FLASH_TOTAL_SIZE, TELE_FRAME_SIZE,
     },
     device::FlashDmaChannel,
     device::Irqs,
     rc::RcData,
-    switch::SwitchingPolicy,
+    switch::{SwitchWatch, SwitchingPolicy},
     telemetry::{BBOX_CHANNEL, TELE_MODE, USB_CHANNEL},
 };
 use drone_consts::telemetry::*;
@@ -20,7 +20,7 @@ use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal}
 use embedded_storage_async::nor_flash::NorFlash;
 use portable_atomic::Ordering;
 
-pub static FLUSH_SIGNAL: Signal<CriticalSectionRawMutex, ()> = Signal::new();
+static FLUSH_STATE: SwitchWatch = SwitchWatch::new();
 pub static DUMP_SIGNAL: Signal<CriticalSectionRawMutex, ()> = Signal::new();
 
 pub struct BlackBoxSwitch;
@@ -30,7 +30,7 @@ impl SwitchingPolicy for BlackBoxSwitch {
 
     const NAME: &'static str = "BBOX_FLUSH";
 
-    const ON_SIGNAL: Option<&'static Signal<CriticalSectionRawMutex, ()>> = Some(&FLUSH_SIGNAL);
+    const STATE: &'static SwitchWatch = &FLUSH_STATE;
 
     #[inline(always)]
     fn want_on(rc: &RcData) -> bool {
@@ -218,13 +218,13 @@ impl<'d> FlashLogger<'d> {
 #[embassy_executor::task]
 pub async fn flash_logger_task(mut logger: FlashLogger<'static>) {
     let receiver = BBOX_CHANNEL.receiver();
+    let mut arm = Arming::subscriber();
+    let mut flush = BlackBoxSwitch::subscriber();
 
     loop {
-        match select3(ARMED.wait(), DUMP_SIGNAL.wait(), FLUSH_SIGNAL.wait()).await {
+        match select3(arm.wait_on(), DUMP_SIGNAL.wait(), flush.wait_on()).await {
             Either3::First(()) => {
                 DUMP_SIGNAL.try_take();
-                FLUSH_SIGNAL.try_take();
-                DISARMED.try_take();
 
                 log::info!("Starting IMU dump to ring buffer in RAM");
 
@@ -245,7 +245,7 @@ pub async fn flash_logger_task(mut logger: FlashLogger<'static>) {
 
                 let mut frame_count = 0;
 
-                while !DISARMED.signaled() {
+                while arm.is_on() {
                     let frame = receiver.receive().await;
                     if frame_count % BBOX_TELE_DIVISOR == 0 && !logger.cache_frame(&frame) {
                         log::info!("Stopped IMU dump, disarmed or out of memory");
