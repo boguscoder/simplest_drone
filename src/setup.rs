@@ -1,4 +1,4 @@
-use crate::consts::{I2C_FREQ, IMU_I2C_ADDR, SBUS_BAUD};
+use crate::consts::*;
 use crate::{baro, device::I2cPeripheral, imu, log_and_panic, rc};
 use bmp388_embedded::{
     Address, IirFilter, OutputDataRate, Oversampling, PowerMode, SensorConfig, r#async::Bmp388Async,

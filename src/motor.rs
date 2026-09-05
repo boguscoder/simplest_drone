@@ -1,10 +1,5 @@
 use crate::alt_hold::AltHold;
-use crate::consts::{
-    ALT_HOLD_THROTTLE_MAX, ALT_HOLD_THROTTLE_MIN, ALT_KD_MIN, ALT_KI_FIXED, ALT_KP_MIN,
-    ANGLE_P_GAIN, I_TERM_THROTTLE_LIMIT, KD_FIXED, KI_FIXED, KP_FIXED, MAX_LEAN_ANGLE, MAX_POWER,
-    PID_LIMIT_MAX, PID_LIMIT_MIN, SLOPE, THROTTLE_MIN, YAW_KD_FIXED, YAW_KI_FIXED, YAW_KP_FIXED,
-    YAW_RATE,
-};
+use crate::consts::*;
 use crate::{
     imu::ImuData,
     pid::{Limits, Pid},
@@ -86,7 +81,7 @@ impl MotorInput {
                 KD_FIXED,
                 cycle_time,
                 pid_limits,
-                None,
+                Some(D_FILTER_CUTOFF_HZ),
             ),
             pid_pitch: Pid::new(
                 KP_FIXED,
@@ -94,7 +89,7 @@ impl MotorInput {
                 KD_FIXED,
                 cycle_time,
                 pid_limits,
-                None,
+                Some(D_FILTER_CUTOFF_HZ),
             ),
             pid_yaw: Pid::new(
                 YAW_KP_FIXED,
@@ -161,7 +156,7 @@ impl MotorInput {
             pid_alt = self.pid_alt.update(alt_error, alt);
             (self.hover_throttle + pid_alt).clamp(0.0, MAX_POWER)
         } else {
-            rc_data.throttle()
+            rc_data.throttle() * (MAX_POWER - THROTTLE_HEADROOM)
         };
 
         let target_angle_roll = -rc_data.roll() * MAX_LEAN_ANGLE;

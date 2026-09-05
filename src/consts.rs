@@ -33,6 +33,7 @@ pub const SWITCH_FOLLOWERS: usize = 2;
 
 // --- Tuning ---
 pub const MAX_POWER: f32 = 0.4;
+pub const THROTTLE_HEADROOM: f32 = 0.05;
 pub const THROTTLE_MIN: f32 = 48.0;
 pub const THROTTLE_MAX: f32 = 2047.0;
 pub const SLOPE: f32 = THROTTLE_MAX - THROTTLE_MIN;
@@ -40,7 +41,7 @@ pub const YAW_RATE: f32 = 200.0 * core::f32::consts::PI / 180.0;
 pub const MAX_LEAN_ANGLE: f32 = 45.0 * core::f32::consts::PI / 180.0;
 pub const ANGLE_P_GAIN: f32 = 5.0;
 pub const RATE_FILTER_CUTOFF_HZ: f32 = 100.0;
-pub const _D_FILTER_CUTOFF_HZ: f32 = 25.0;
+pub const D_FILTER_CUTOFF_HZ: f32 = 25.0;
 pub const I_TERM_THROTTLE_LIMIT: f32 = 0.1;
 pub const AHRS_BETA: f32 = 0.05;
 
@@ -52,7 +53,7 @@ pub const _KI_MIN: f32 = 0.0;
 pub const _KI_MAX: f32 = 0.15;
 pub const KI_FIXED: f32 = 0.12;
 
-pub const KD_FIXED: f32 = 0.001;
+pub const KD_FIXED: f32 = 0.0003;
 
 pub const YAW_KP_FIXED: f32 = 0.08;
 pub const YAW_KI_FIXED: f32 = KI_FIXED;
