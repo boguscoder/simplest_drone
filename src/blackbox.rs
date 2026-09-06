@@ -260,7 +260,11 @@ pub async fn flash_logger_task(mut logger: FlashLogger<'static>) {
                 logger.dump_to_channel().await;
             }
             Either3::Third(()) => {
-                logger.commit_to_flash().await;
+                if arm.is_on() {
+                    log::warn!("BBOX flush refused while armed");
+                } else {
+                    logger.commit_to_flash().await;
+                }
             }
         }
     }
