@@ -33,11 +33,11 @@ use alt_estimator::AltitudeEstimator;
 use alt_hold::AltHold;
 use arming::Arming;
 use attitude::Attitude;
-use consts::{CYCLE_TIME, TICK_HZ};
+use consts::*;
 use drone_consts::telemetry::*;
 use embassy_dshot::{Command, DshotPioTrait};
 use embassy_executor::Spawner;
-use embassy_time::{Duration, Ticker};
+use embassy_time::{Duration, Instant, Ticker};
 use panic_probe as _;
 use rc::RcData;
 use switch::{Switch, SwitchState};
@@ -61,14 +61,42 @@ async fn main(spawner: Spawner) {
 
     const ZERO_RC: RcData = RcData::from_channels([0; 16]);
 
+    let mut last_imu: Option<Instant> = None;
+    let mut last_baro: Option<Instant> = None;
+
     loop {
-        let imu = imu_reader.try_get();
+        let now = Instant::now();
         let rc = rc_reader.try_get();
-        let baro_alt = alt_reader.try_get();
+
+        let imu = match imu_reader.try_changed() {
+            Some(fresh) => {
+                last_imu = Some(now);
+                Some(fresh)
+            }
+            None => imu_reader.try_get(),
+        };
+        let imu_ok =
+            last_imu.is_none_or(|t| now.duration_since(t) <= Duration::from_millis(IMU_STALE_MS));
+        if !imu_ok {
+            rl_log!(TICK_HZ, "IMU stale, failsafe disarm");
+        }
+
+        let baro_alt = match alt_reader.try_changed() {
+            Some(fresh) => {
+                last_baro = Some(now);
+                Some(fresh)
+            }
+            None => alt_reader.try_get(),
+        };
+        let baro_ok =
+            last_baro.is_none_or(|t| now.duration_since(t) <= Duration::from_millis(BARO_STALE_MS));
+        if !baro_ok {
+            rl_log!(TICK_HZ, "Baro stale, alt-hold off");
+        }
 
         let rc_ref = rc.as_ref().unwrap_or(&ZERO_RC);
-        arming.update(rc_ref, rc.is_some());
-        alt_hold.update(rc_ref, arming.state() == SwitchState::Active);
+        arming.update(rc_ref, rc.is_some() && imu_ok);
+        alt_hold.update(rc_ref, arming.state() == SwitchState::Active && baro_ok);
 
         #[cfg(feature = "telemetry")]
         bbox.update(rc_ref, ());
@@ -81,13 +109,7 @@ async fn main(spawner: Spawner) {
                     let att: [f32; 3] = quat.euler_angles().into();
                     tele!(Mode::Attitude, att[0], att[1], att[2], alt);
 
-                    motor.update(
-                        &rc,
-                        &imu,
-                        &att,
-                        alt,
-                        arming.state() == SwitchState::Active,
-                    )
+                    motor.update(&rc, &imu, &att, alt, arming.state() == SwitchState::Active)
                 })
         } else {
             None
