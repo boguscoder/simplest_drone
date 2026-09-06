@@ -34,7 +34,7 @@ pub const BARO_STALE_MS: u64 = 200;
 pub const SWITCH_FOLLOWERS: usize = 2;
 
 // --- Tuning ---
-pub const MAX_POWER: f32 = 0.4;
+pub const MAX_POWER: f32 = 0.6;
 pub const THROTTLE_HEADROOM: f32 = 0.05;
 pub const THROTTLE_STICK_MAX: f32 = MAX_POWER - THROTTLE_HEADROOM;
 pub const THROTTLE_MIN: f32 = 48.0;
