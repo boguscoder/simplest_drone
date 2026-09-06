@@ -1,5 +1,5 @@
 use crate::{
-    consts::ALT_HOLD_THROTTLE_MIN,
+    consts::*,
     rc::RcData,
     switch::{SwitchWatch, SwitchingPolicy},
 };
@@ -17,7 +17,9 @@ impl SwitchingPolicy for AltHold {
 
     #[inline(always)]
     fn want_on(rc: &RcData) -> bool {
-        rc.altitude_switch() > 0.5 && rc.throttle() > ALT_HOLD_THROTTLE_MIN
+        rc.altitude_switch() > 0.5
+            && rc.throttle() > ALT_HOLD_THROTTLE_MIN
+            && rc.throttle() < ALT_HOLD_THROTTLE_MAX
     }
 
     #[inline(always)]

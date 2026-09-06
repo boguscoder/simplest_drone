@@ -139,9 +139,8 @@ impl MotorInput {
 
         if self.alt_hold.turned_on() {
             self.target_alt = alt;
-            self.hover_throttle = rc_data
-                .throttle()
-                .clamp(ALT_HOLD_THROTTLE_MIN, ALT_HOLD_THROTTLE_MAX);
+            self.hover_throttle = (rc_data.throttle() * THROTTLE_STICK_MAX)
+                .clamp(ALT_HOLD_THROTTLE_MIN, THROTTLE_STICK_MAX);
             self.pid_alt.i = 0.0;
             log::info!(
                 "AltHold locked: {:.2}m | Hover throttle: {:.2}",
@@ -152,11 +151,10 @@ impl MotorInput {
 
         let mut pid_alt = 0.0;
         let throttle = if self.alt_hold.is_on() {
-            let alt_error = self.target_alt - alt;
-            pid_alt = self.pid_alt.update(alt_error, alt);
+            pid_alt = self.pid_alt.update(self.target_alt, alt);
             (self.hover_throttle + pid_alt).clamp(0.0, MAX_POWER)
         } else {
-            rc_data.throttle() * (MAX_POWER - THROTTLE_HEADROOM)
+            rc_data.throttle() * THROTTLE_STICK_MAX
         };
 
         let target_angle_roll = -rc_data.roll() * MAX_LEAN_ANGLE;
