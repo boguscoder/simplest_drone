@@ -7,6 +7,11 @@ pub const BARO_HZ: u64 = 50;
 pub const SBUS_BAUD: u32 = 100_000;
 pub const I2C_FREQ: u32 = 1_000_000;
 pub const IMU_I2C_ADDR: u8 = 0x69;
+#[cfg(feature = "telemetry")]
+pub const IMU_HZ: u64 = TICK_HZ / 2;
+#[cfg(not(feature = "telemetry"))]
+pub const IMU_HZ: u64 = TICK_HZ;
+pub const IMU_CYCLE_TIME: f32 = 1.0 / IMU_HZ as f32;
 
 // --- Telemetry ---
 #[cfg(feature = "telemetry")]

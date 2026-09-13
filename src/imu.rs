@@ -20,16 +20,16 @@ pub static IMU_DATA: Watch<CriticalSectionRawMutex, ImuData, 1> = Watch::new();
 pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
     Timer::after_secs(3).await;
 
-    let mut loop_ticker = Ticker::every(Duration::from_hz(TICK_HZ));
+    let mut loop_ticker = Ticker::every(Duration::from_hz(IMU_HZ));
     let mut calibration_ticks: usize = 0;
     let mut total_ticks: usize = 0;
     let mut gyr_bias: Vector3<f32> = Vector3::zeros();
     let mut gyro_fx = Pt2Filterf32::new();
     let mut gyro_fy = Pt2Filterf32::new();
     let mut gyro_fz = Pt2Filterf32::new();
-    gyro_fx.set_cutoff_frequency(RATE_FILTER_CUTOFF_HZ, CYCLE_TIME);
-    gyro_fy.set_cutoff_frequency(RATE_FILTER_CUTOFF_HZ, CYCLE_TIME);
-    gyro_fz.set_cutoff_frequency(RATE_FILTER_CUTOFF_HZ, CYCLE_TIME);
+    gyro_fx.set_cutoff_frequency(RATE_FILTER_CUTOFF_HZ, IMU_CYCLE_TIME);
+    gyro_fy.set_cutoff_frequency(RATE_FILTER_CUTOFF_HZ, IMU_CYCLE_TIME);
+    gyro_fz.set_cutoff_frequency(RATE_FILTER_CUTOFF_HZ, IMU_CYCLE_TIME);
 
     let imu_sender = IMU_DATA.sender();
     let mut last_time = Instant::now();
@@ -37,6 +37,7 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
     loop {
         let Ok(imudata) = imu.read_6dof().await else {
             log::error!("Failed to read IMU");
+            loop_ticker.next().await;
             continue;
         };
 

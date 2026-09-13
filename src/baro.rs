@@ -19,6 +19,7 @@ pub async fn baro_task(mut baro: setup::BaroReader) -> ! {
 
     loop {
         let Ok(data) = baro.sensor_data().await else {
+            loop_ticker.next().await;
             continue;
         };
 
