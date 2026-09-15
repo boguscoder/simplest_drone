@@ -20,7 +20,6 @@ pub mod device_impl {
     pub type DshotPioM3Pin = super::peripherals::PIN_3;
     pub type DshotPioM4Pin = super::peripherals::PIN_4;
 
-    #[cfg(feature = "telemetry")]
     pub type USBPeripheral = super::peripherals::USB;
     #[cfg(feature = "telemetry")]
     pub type FlashPeripheral = super::peripherals::FLASH;
@@ -72,7 +71,6 @@ pub struct Device {
     pub rc: Sbus,
     pub imu: I2c,
     pub motors: Dshot,
-    #[cfg(feature = "telemetry")]
     pub usb: Peri<'static, USBPeripheral>,
     #[cfg(feature = "telemetry")]
     pub flash: Flash,
@@ -100,7 +98,6 @@ impl Device {
                 m3: p.PIN_2,
                 m4: p.PIN_1,
             },
-            #[cfg(feature = "telemetry")]
             usb: p.USB,
             #[cfg(feature = "telemetry")]
             flash: Flash {

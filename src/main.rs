@@ -19,8 +19,6 @@ mod pid;
 mod rc;
 mod setup;
 mod switch;
-
-#[cfg(feature = "telemetry")]
 mod usb;
 
 #[cfg(feature = "telemetry")]

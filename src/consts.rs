@@ -12,12 +12,12 @@ pub const IMU_HZ: u64 = TICK_HZ / 2;
 #[cfg(not(feature = "telemetry"))]
 pub const IMU_HZ: u64 = TICK_HZ;
 pub const IMU_CYCLE_TIME: f32 = 1.0 / IMU_HZ as f32;
+pub const USB_VID: u16 = 0xc0de;
+pub const USB_PID: u16 = 0xbabe;
 
 // --- Telemetry ---
 #[cfg(feature = "telemetry")]
 pub mod tele_consts {
-    pub const USB_VID: u16 = 0xc0de;
-    pub const USB_PID: u16 = 0xbabe;
     pub const TELE_MAX_VALUES: usize = 9;
     pub const TELE_FRAME_SIZE: usize = 2 + TELE_MAX_VALUES * 4;
     pub const FLASH_TELE_SIZE: usize = 1024 * 1024;

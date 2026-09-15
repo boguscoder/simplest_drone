@@ -19,7 +19,6 @@ use icm20948_async::{
 };
 use static_cell::StaticCell;
 
-#[cfg(feature = "telemetry")]
 use crate::usb;
 
 #[cfg(feature = "telemetry")]
@@ -37,9 +36,9 @@ pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
 
     let device = crate::device::Device::new(peripherals);
 
+    spawner.spawn(usb::usb_setup(device.usb).unwrap());
     #[cfg(feature = "telemetry")]
     {
-        spawner.spawn(usb::usb_setup(device.usb).unwrap());
         spawner.spawn(
             blackbox::flash_logger_task(blackbox::FlashLogger::new(
                 device.flash.peri,
