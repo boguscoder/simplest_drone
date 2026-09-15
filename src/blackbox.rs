@@ -32,6 +32,9 @@ impl SwitchingPolicy for BlackBoxSwitch {
 
     const STATE: &'static SwitchWatch = &FLUSH_STATE;
 
+    const ON_TICKS: u64 = 1000;
+    const OFF_TICKS: u64 = 10;
+
     #[inline(always)]
     fn want_on(rc: &RcData) -> bool {
         rc.bbox_flush() > 0.5
@@ -193,11 +196,11 @@ impl<'d> FlashLogger<'d> {
                 .await
             {
                 Ok(()) => {
-                    for frame_slice in read_buf[..chunk_size].chunks_exact(TELE_FRAME_SIZE) {
-                        if let Ok(array_chunk) = frame_slice.try_into() {
-                            USB_CHANNEL.send(array_chunk).await;
-                            bytes_sent += TELE_FRAME_SIZE;
-                        }
+                    let (frames, _) = read_buf[..chunk_size].as_chunks::<TELE_FRAME_SIZE>();
+                    for frame_slice in frames {
+                        let array_chunk: [u8; TELE_FRAME_SIZE] = *frame_slice;
+                        USB_CHANNEL.send(array_chunk).await;
+                        bytes_sent += TELE_FRAME_SIZE;
                     }
                 }
                 Err(e) => {

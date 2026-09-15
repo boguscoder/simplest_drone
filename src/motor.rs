@@ -139,8 +139,7 @@ impl MotorInput {
 
         if self.alt_hold.turned_on() {
             self.target_alt = alt;
-            self.hover_throttle = (rc_data.throttle() * THROTTLE_STICK_MAX)
-                .clamp(ALT_HOLD_THROTTLE_MIN, THROTTLE_STICK_MAX);
+            self.hover_throttle = rc_data.throttle() * THROTTLE_STICK_MAX;
             self.pid_alt.i = 0.0;
             log::info!(
                 "AltHold locked: {:.2}m | Hover throttle: {:.2}",
