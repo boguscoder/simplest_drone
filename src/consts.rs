@@ -68,9 +68,10 @@ pub const PID_LIMIT_MAX: f32 = 0.4;
 
 pub const ALT_KP_MIN: f32 = 0.0;
 pub const ALT_KP_MAX: f32 = 0.5;
-pub const ALT_KI_FIXED: f32 = 0.05;
+pub const ALT_KI_FIXED: f32 = 0.02;
 pub const ALT_KD_MIN: f32 = 0.0;
 pub const ALT_KD_MAX: f32 = 0.05;
+pub const ALT_D_FILTER_CUTOFF_HZ: f32 = 10.0;
 pub const ALT_HOLD_THROTTLE_MIN: f32 = 0.15;
 
 // --- IMU ---

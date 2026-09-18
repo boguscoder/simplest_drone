@@ -105,7 +105,7 @@ impl MotorInput {
                 ALT_KD_MIN,
                 cycle_time,
                 pid_limits,
-                None,
+                Some(ALT_D_FILTER_CUTOFF_HZ),
             ),
             target_alt: 0.0,
             hover_throttle: 0.0,
@@ -166,7 +166,7 @@ impl MotorInput {
         let target_rate_pitch = angle_error_pitch * ANGLE_P_GAIN;
         let pid_pitch = self.pid_pitch.update(target_rate_pitch, imu.gyro[1]);
 
-        let pid_yaw = self.pid_yaw.update(rc_data.yaw() * YAW_RATE, -imu.gyro[2]);
+        let pid_yaw = self.pid_yaw.update(rc_data.yaw() * YAW_RATE, imu.gyro[2]);
 
         tele!(
             Mode::Pid,

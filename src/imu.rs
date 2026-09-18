@@ -46,7 +46,7 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
         last_time = now;
         let dt = elapsed.as_micros() as f32 / 1_000_000.0;
 
-        let gyr = Vector3::new(imudata.gyr[0], -imudata.gyr[1], -imudata.gyr[2]);
+        let gyr = Vector3::new(imudata.gyr[0], -imudata.gyr[1], imudata.gyr[2]);
         let acc = Vector3::new(imudata.acc[0], -imudata.acc[1], -imudata.acc[2]);
 
         if calibration_ticks == 0 {

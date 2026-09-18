@@ -103,7 +103,7 @@ async fn main(spawner: Spawner) {
             att_transformer
                 .update(&imu.gyro, &imu.acc, &imu.mag, imu.dt)
                 .map(|quat| {
-                    let alt = alt_estimator.update(&quat, &imu, baro_alt);
+                    let alt = alt_estimator.update(&quat, &imu, baro_alt, imu.dt);
                     let att: [f32; 3] = quat.euler_angles().into();
                     tele!(Mode::Attitude, att[0], att[1], att[2], alt);
 

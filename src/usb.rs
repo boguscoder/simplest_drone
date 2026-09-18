@@ -1,12 +1,12 @@
 #[cfg(feature = "telemetry")]
-use crate::{
-    cmd,
-    telemetry::USB_CHANNEL,
-};
-use crate::consts::{USB_PID, USB_VID};
-
+use crate::{cmd, telemetry::USB_CHANNEL};
 #[cfg(feature = "telemetry")]
 use embassy_futures::join::{join, join3};
+#[cfg(feature = "telemetry")]
+use embassy_usb::class::cdc_acm::{CdcAcmClass, Receiver, Sender, State};
+
+use crate::consts::{USB_PID, USB_VID};
+
 use embassy_rp::{
     bind_interrupts,
     peripherals::USB,
@@ -18,8 +18,6 @@ use embassy_usb::{
     control::{OutResponse, Recipient, Request, RequestType},
     types::{InterfaceNumber, StringIndex},
 };
-#[cfg(feature = "telemetry")]
-use embassy_usb::class::cdc_acm::{CdcAcmClass, Receiver, Sender, State};
 use static_cell::StaticCell;
 
 bind_interrupts!(struct Irqs {
@@ -157,10 +155,7 @@ pub async fn usb_setup(p: embassy_rp::Peri<'static, embassy_rp::peripherals::USB
     {
         let (app_sender, app_receiver) = app_class.split();
 
-        let app_task = join(
-            usb_read_task(app_receiver),
-            usb_telemetry_task(app_sender),
-        );
+        let app_task = join(usb_read_task(app_receiver), usb_telemetry_task(app_sender));
         join3(usb_run_task(usb), usb_log_task(logger_class), app_task).await;
     }
     #[cfg(not(feature = "telemetry"))]

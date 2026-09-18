@@ -1,9 +1,9 @@
-use crate::{consts::CYCLE_TIME, imu::ImuData};
+use crate::imu::ImuData;
 use nalgebra::UnitQuaternion;
 
 const GRAVITY: f32 = 9.81;
-const K_ALT: f32 = 0.02; // Pulls altitude toward baro
-const K_VEL: f32 = 0.005; // Fixes velocity drift using baro error
+const K_ALT: f32 = 2.0;
+const K_VEL: f32 = 0.5;
 
 pub struct AltitudeEstimator {
     estimated_alt: f32,
@@ -18,7 +18,13 @@ impl AltitudeEstimator {
         }
     }
 
-    pub fn update(&mut self, quat: &UnitQuaternion<f32>, imu: &ImuData, baro_alt: f32) -> f32 {
+    pub fn update(
+        &mut self,
+        quat: &UnitQuaternion<f32>,
+        imu: &ImuData,
+        baro_alt: f32,
+        dt: f32,
+    ) -> f32 {
         let w = quat[0];
         let x = quat[1];
         let y = quat[2];
@@ -36,14 +42,14 @@ impl AltitudeEstimator {
         }
 
         // PREDICT (Fast, but drifts)
-        self.velocity_z += accel_z_earth * CYCLE_TIME;
-        self.estimated_alt += self.velocity_z * CYCLE_TIME;
+        self.velocity_z += accel_z_earth * dt;
+        self.estimated_alt += self.velocity_z * dt;
 
         // CORRECT (Slow, anchors to reality)
         let alt_error = baro_alt - self.estimated_alt;
 
-        self.estimated_alt += alt_error * K_ALT;
-        self.velocity_z += alt_error * K_VEL;
+        self.estimated_alt += alt_error * K_ALT * dt;
+        self.velocity_z += alt_error * K_VEL * dt;
 
         self.estimated_alt
     }
