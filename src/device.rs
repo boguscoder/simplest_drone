@@ -6,8 +6,8 @@ use embassy_rp::{
 pub mod device_impl {
     pub type Core1Peripheral = super::peripherals::CORE1;
 
-    pub type SbusUartPeripheral = super::peripherals::UART1;
-    pub type SbusUartPin = super::peripherals::PIN_25;
+    pub type SbusUartPeripheral = super::peripherals::UART0;
+    pub type SbusUartPin = super::peripherals::PIN_1;
     pub type SbusDmaChannel = super::peripherals::DMA_CH1;
 
     pub type I2cPeripheral = super::peripherals::I2C1;
@@ -15,10 +15,10 @@ pub mod device_impl {
     pub type I2cSclPin = super::peripherals::PIN_3;
 
     pub type DshotPioPeripheral = super::peripherals::PIO0;
-    pub type DshotPioM1Pin = super::peripherals::PIN_27;
-    pub type DshotPioM2Pin = super::peripherals::PIN_28;
-    pub type DshotPioM3Pin = super::peripherals::PIN_29;
-    pub type DshotPioM4Pin = super::peripherals::PIN_24;
+    pub type DshotPioM1Pin = super::peripherals::PIN_25;
+    pub type DshotPioM2Pin = super::peripherals::PIN_22;
+    pub type DshotPioM3Pin = super::peripherals::PIN_23;
+    pub type DshotPioM4Pin = super::peripherals::PIN_20;
 
     pub type USBPeripheral = super::peripherals::USB;
     #[cfg(feature = "telemetry")]
@@ -27,7 +27,7 @@ pub mod device_impl {
     pub type FlashDmaChannel = super::peripherals::DMA_CH0;
 
     super::bind_interrupts!(pub struct Irqs {
-        UART1_IRQ => super::UartHandler<SbusUartPeripheral>;
+        UART0_IRQ => super::UartHandler<SbusUartPeripheral>;
         PIO0_IRQ_0 => super::PioHandler<DshotPioPeripheral>;
         I2C1_IRQ => super::I2CHandler<I2cPeripheral>;
         #[cfg(not(feature = "telemetry"))]
@@ -81,8 +81,8 @@ impl Device {
         Device {
             core1: p.CORE1,
             rc: Sbus {
-                uart: p.UART1,
-                rx: p.PIN_25,
+                uart: p.UART0,
+                rx: p.PIN_1,
                 dma: p.DMA_CH1,
             },
             imu: I2c {
@@ -93,10 +93,10 @@ impl Device {
             motors: Dshot {
                 pio: p.PIO0,
                 // 4-in-1 ESC pins mapped to MCU via breakout board
-                m1: p.PIN_24,
-                m2: p.PIN_29,
-                m3: p.PIN_28,
-                m4: p.PIN_27,
+                m1: p.PIN_20,
+                m2: p.PIN_23,
+                m3: p.PIN_22,
+                m4: p.PIN_25,
             },
             usb: p.USB,
             #[cfg(feature = "telemetry")]
