@@ -37,6 +37,7 @@ use drone_consts::telemetry::*;
 use embassy_dshot::{Command, DshotPioTrait};
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Instant, Ticker};
+use led::{LED_STATE, SysState};
 use panic_probe as _;
 use rc::RcData;
 use switch::{Switch, SwitchState};
@@ -62,6 +63,7 @@ async fn main(spawner: Spawner) {
 
     let mut last_imu: Option<Instant> = None;
     let mut last_baro: Option<Instant> = None;
+    let mut led: Option<SysState> = None;
 
     loop {
         let now = Instant::now();
@@ -96,6 +98,22 @@ async fn main(spawner: Spawner) {
         let rc_ref = rc.as_ref().unwrap_or(&ZERO_RC);
         arming.update(rc_ref, rc.is_some() && imu_ok);
         alt_hold.update(rc_ref, arming.state() == SwitchState::Active && baro_ok);
+
+        if imu.is_some() {
+            let want = if rc.is_none() {
+                SysState::Fail
+            } else if alt_hold.state() == SwitchState::Active {
+                SysState::AltHold
+            } else if arming.state() == SwitchState::Active {
+                SysState::Armed
+            } else {
+                SysState::Ready
+            };
+            if Some(want) != led {
+                led = Some(want);
+                LED_STATE.sender().send(want);
+            }
+        }
 
         #[cfg(feature = "telemetry")]
         bbox.update(rc_ref, ());
