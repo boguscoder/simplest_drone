@@ -13,6 +13,7 @@ mod cmd;
 mod consts;
 mod device;
 mod imu;
+mod led;
 mod logs;
 mod motor;
 mod pid;

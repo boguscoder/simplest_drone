@@ -1,5 +1,8 @@
 use crate::consts::*;
-use crate::{baro, device::I2cPeripheral, imu, log_and_panic, rc};
+use crate::{baro, device::I2cPeripheral, imu, led, log_and_panic, rc, usb};
+
+#[cfg(feature = "telemetry")]
+use crate::blackbox;
 use bmp388_embedded::{
     Address, IirFilter, OutputDataRate, Oversampling, PowerMode, SensorConfig, r#async::Bmp388Async,
 };
@@ -21,11 +24,6 @@ use icm20948_async::{
     AccDlp, AccRange, AccUnit, BusI2c, GyrDlp, GyrRange, GyrUnit, Icm20948, IcmBuilder,
 };
 use static_cell::StaticCell;
-
-use crate::usb;
-
-#[cfg(feature = "telemetry")]
-use crate::blackbox;
 
 pub type I2cHw = i2c::I2c<'static, I2cPeripheral, i2c::Async>;
 pub type SharedI2cBus = Mutex<CriticalSectionRawMutex, I2cHw>;
@@ -150,9 +148,11 @@ pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
         let executor = CORE_EXECUTOR.init(Executor::new());
         executor.run(|spawner| {
             spawner.spawn(baro::baro_task(baro).unwrap());
-            spawner.spawn(imu::imu_task(imu, ws).unwrap());
+            spawner.spawn(imu::imu_task(imu).unwrap());
         })
     });
+
+    spawner.spawn(led::led_task(ws).unwrap());
 
     // Motors via DSHOT setup //
     log::info!("// Motors via DSHOT setup //");

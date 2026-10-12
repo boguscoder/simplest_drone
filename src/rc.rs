@@ -1,5 +1,4 @@
-use crate::consts::*;
-use crate::setup;
+use crate::{consts::*, setup};
 use drone_consts::telemetry::*;
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, watch::Watch};
 use embassy_time::{Duration, with_timeout};
