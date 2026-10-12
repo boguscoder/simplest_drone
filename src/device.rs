@@ -20,6 +20,10 @@ pub mod device_impl {
     pub type DshotPioM3Pin = super::peripherals::PIN_23;
     pub type DshotPioM4Pin = super::peripherals::PIN_20;
 
+    pub type NeoPioPeripheral = super::peripherals::PIO1;
+    pub type NeoPixelPin = super::peripherals::PIN_21;
+    pub type NeoDmaChannel = super::peripherals::DMA_CH2;
+
     pub type USBPeripheral = super::peripherals::USB;
     #[cfg(feature = "telemetry")]
     pub type FlashPeripheral = super::peripherals::FLASH;
@@ -29,11 +33,12 @@ pub mod device_impl {
     super::bind_interrupts!(pub struct Irqs {
         UART0_IRQ => super::UartHandler<SbusUartPeripheral>;
         PIO0_IRQ_0 => super::PioHandler<DshotPioPeripheral>;
+        PIO1_IRQ_0 => super::PioHandler<NeoPioPeripheral>;
         I2C1_IRQ => super::I2CHandler<I2cPeripheral>;
         #[cfg(not(feature = "telemetry"))]
-        DMA_IRQ_0 => embassy_rp::dma::InterruptHandler<SbusDmaChannel>;
+        DMA_IRQ_0 => embassy_rp::dma::InterruptHandler<SbusDmaChannel>, embassy_rp::dma::InterruptHandler<NeoDmaChannel>;
         #[cfg(feature = "telemetry")]
-        DMA_IRQ_0 => embassy_rp::dma::InterruptHandler<FlashDmaChannel>, embassy_rp::dma::InterruptHandler<SbusDmaChannel>;
+        DMA_IRQ_0 => embassy_rp::dma::InterruptHandler<FlashDmaChannel>, embassy_rp::dma::InterruptHandler<SbusDmaChannel>, embassy_rp::dma::InterruptHandler<NeoDmaChannel>;
 
     });
 }
@@ -66,11 +71,18 @@ pub struct Flash {
     pub dma: Peri<'static, FlashDmaChannel>,
 }
 
+pub struct Neo {
+    pub pio: Peri<'static, NeoPioPeripheral>,
+    pub pin: Peri<'static, NeoPixelPin>,
+    pub dma: Peri<'static, NeoDmaChannel>,
+}
+
 pub struct Device {
     pub core1: Peri<'static, Core1Peripheral>,
     pub rc: Sbus,
     pub imu: I2c,
     pub motors: Dshot,
+    pub neo: Neo,
     pub usb: Peri<'static, USBPeripheral>,
     #[cfg(feature = "telemetry")]
     pub flash: Flash,
@@ -97,6 +109,11 @@ impl Device {
                 m2: p.PIN_23,
                 m3: p.PIN_22,
                 m4: p.PIN_25,
+            },
+            neo: Neo {
+                pio: p.PIO1,
+                pin: p.PIN_21,
+                dma: p.DMA_CH2,
             },
             usb: p.USB,
             #[cfg(feature = "telemetry")]

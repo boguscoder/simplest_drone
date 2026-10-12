@@ -17,8 +17,16 @@ pub struct ImuData {
 pub static IMU_DATA: Watch<CriticalSectionRawMutex, ImuData, 1> = Watch::new();
 
 #[embassy_executor::task]
-pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
-    Timer::after_secs(3).await;
+pub async fn imu_task(mut imu: setup::ImuReader, mut ws: setup::NeoWs) -> ! {
+    use smart_leds::RGB8;
+
+    for _ in 0..6 {
+        ws.write(&[RGB8::new(0, 0, 40)]).await;
+        Timer::after_millis(250).await;
+        ws.write(&[RGB8::new(0, 0, 0)]).await;
+        Timer::after_millis(250).await;
+    }
+    ws.write(&[RGB8::new(40, 20, 0)]).await;
 
     let mut loop_ticker = Ticker::every(Duration::from_hz(IMU_HZ));
     let mut calibration_ticks: usize = 0;
@@ -63,6 +71,7 @@ pub async fn imu_task(mut imu: setup::ImuReader) -> ! {
                 gyr_bias,
             );
             calibration_ticks += 1;
+            ws.write(&[RGB8::new(0, 40, 0)]).await;
         } else {
             let mag = if total_ticks.is_multiple_of(10) {
                 imu.read_mag()

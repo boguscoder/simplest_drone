@@ -10,6 +10,9 @@ use embassy_rp::{
     config::Config,
     i2c,
     multicore::Stack,
+    peripherals::PIO1,
+    pio::{Common, Pio},
+    pio_programs::ws2812::{Grb, PioWs2812, PioWs2812Program},
     uart::{self, DataBits, Parity, StopBits, UartRx},
 };
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex};
@@ -30,6 +33,7 @@ pub type SharedI2cDevice = I2cDevice<'static, CriticalSectionRawMutex, I2cHw>;
 pub type ImuReader = Icm20948<BusI2c<SharedI2cDevice>, icm20948_async::MagEnabled>;
 pub type BaroReader = Bmp388Async<SharedI2cDevice, Delay>;
 pub type UartReader = UartRx<'static, uart::Async>;
+pub type NeoWs = PioWs2812<'static, PIO1, 0, 1, Grb>;
 
 pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
     let peripherals = embassy_rp::init(Config::default());
@@ -127,12 +131,26 @@ pub async fn connect(spawner: Spawner) -> impl DshotPioTrait<4> {
 
     static CORE_EXECUTOR: StaticCell<Executor> = StaticCell::new();
     static CORE_STACK: StaticCell<Stack<16384>> = StaticCell::new();
+    static NEO_COMMON: StaticCell<Common<'static, PIO1>> = StaticCell::new();
+    static NEO_PRG: StaticCell<PioWs2812Program<'static, PIO1>> = StaticCell::new();
+
+    let Pio { common, sm0, .. } = Pio::new(device.neo.pio, crate::device::Irqs);
+    let common = NEO_COMMON.init(common);
+    let program = NEO_PRG.init(PioWs2812Program::new(&mut *common));
+    let ws: NeoWs = PioWs2812::new(
+        &mut *common,
+        sm0,
+        device.neo.dma,
+        crate::device::Irqs,
+        device.neo.pin,
+        &*program,
+    );
 
     embassy_rp::multicore::spawn_core1(device.core1, CORE_STACK.init(Stack::new()), move || {
         let executor = CORE_EXECUTOR.init(Executor::new());
         executor.run(|spawner| {
             spawner.spawn(baro::baro_task(baro).unwrap());
-            spawner.spawn(imu::imu_task(imu).unwrap());
+            spawner.spawn(imu::imu_task(imu, ws).unwrap());
         })
     });
 

@@ -75,6 +75,6 @@ pub const ALT_D_FILTER_CUTOFF_HZ: f32 = 10.0;
 pub const ALT_HOLD_THROTTLE_MIN: f32 = 0.15;
 
 // --- IMU ---
-pub const CALIBRATION_TICKS: usize = 2000;
+pub const CALIBRATION_TICKS: usize = (IMU_HZ * 2) as usize;
 pub const ACC_OFFSET: Vector3<f32> = Vector3::new(-0.09, 0.03, 0.0);
 pub const ACC_SCALE: Vector3<f32> = Vector3::new(0.993833, 0.998219, 0.990074);
